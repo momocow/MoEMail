@@ -1,0 +1,17 @@
+[
+{
+  "modid": "moemail",
+  "name": "MoEMail",
+  "description": "Message system for Minecraft multiple player servers",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "logoFile": "",
+  "url": "http://minecraft.momocow.me/mods",
+  "updateUrl": "http://minecraft.momocow.me/mods/moemail.versions.json",
+  "authorList": ["MomoCow"],
+  "credits": "",
+  "parent": "",
+  "screenshots": [],
+  "dependencies": ["Forge", "MoBasic"]
+}
+]

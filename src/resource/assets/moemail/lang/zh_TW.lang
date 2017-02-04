@@ -1,0 +1,5 @@
+#Commands
+commands.moemail.SendMail.usage=email|mail|em <收件者> <標題|*> <訊息...>
+commands.moemail.SendMail.defaultTitle=無標題
+commands.moemail.SendMail.receiverNotFound=收件者不存在
+commands.moemail.SendMail.mailsent=信件已送出

@@ -45,6 +45,7 @@ minecraft {
 }
 
 dependencies {
+	compile files("libs/MoBasic-1.9.4-0.0.1.0.jar")
 }
 
 processResources

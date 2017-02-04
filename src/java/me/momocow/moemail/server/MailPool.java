@@ -2,47 +2,59 @@ package me.momocow.moemail.server;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import me.momocow.moemail.MoEMail.Mail;
-import me.momocow.moemail.MoEMail.Mail.Header;
+import me.momocow.moemail.MoEMail;
+import me.momocow.moemail.config.Config;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.relauncher.Side;
 
-public class MailPool {
+public class MailPool 
+{
+	private static MailPool instance;
+	private static Logger logger = MoEMail.logger;
+	
+	private final File mailpoolStorage;
 	private final File poolLog;
 	private final File recvLog;
 	private final File unreadLog;
 	private String encoding = "UTF-8";
 	
-	private Map<UUID, Mail> pool = new HashMap<>();
-	private Map<UUID, Set<UUID>> unread = new HashMap<>();
-	private Map<UUID, Set<UUID>> recv = new HashMap<>();
+	/**
+	 * Map[mailID]=Mail
+	 */
+	private Map<UUID, Mail> pool = new HashMap<UUID, Mail>();
+	/**
+	 * Map[recvrID]=Set[unreadMailID]
+	 */
+	private Map<UUID, Set<UUID>> unread = new HashMap<UUID, Set<UUID>>();
+	/**
+	 * Map[recvrID]=Set[mailID]
+	 */
+	private Map<UUID, Set<UUID>> recv = new HashMap<UUID, Set<UUID>>();
 	
-	public MoEMail(File logDir, String enc)
+	private MailPool(File logDir) throws Exception
 	{
-		this(logDir);
-		this.encoding = enc;
-	}
-	
-	public MoEMail(File logDir) 
-	{
-		File mailboxStorage = new File(logDir.getPath() + File.separator + "mailbox");
-		this.poolLog = new File(mailboxStorage.getPath() + File.separator + "mailbox.log");
-		this.recvLog = new File(mailboxStorage.getPath() + File.separator + "recv.log");
-		this.unreadLog = new File(mailboxStorage.getPath() + File.separator + "unread.log");
+		this.mailpoolStorage = new File(logDir, "mailpool");
+		this.poolLog = new File(this.mailpoolStorage, "pool.log");
+		this.recvLog = new File(this.mailpoolStorage, "recv.log");
+		this.unreadLog = new File(this.mailpoolStorage, "unread.log");
 		
-		if(!mailboxStorage.exists())
+		if(!this.mailpoolStorage.exists())
 		{
-			mailboxStorage.mkdirs();
+			this.mailpoolStorage.mkdirs();
 		}
 		
 		if(!this.poolLog.exists())
@@ -53,8 +65,8 @@ public class MailPool {
 			}
 			catch(Exception e)
 			{
-				e.printStackTrace();
-				LogHelper.error("Error creating the log file for mailbox.");
+				logger.info("Unable to create the log file for the mail pool.");
+				throw e;
 			}
 		}
 		
@@ -66,8 +78,8 @@ public class MailPool {
 			}
 			catch(Exception e)
 			{
-				e.printStackTrace();
-				LogHelper.error("Error creating the log file for received mails.");
+				logger.info("Unable to create the log file for received mails.");
+				throw e;
 			}
 		}
 		
@@ -79,13 +91,13 @@ public class MailPool {
 			}
 			catch(Exception e)
 			{
-				e.printStackTrace();
-				LogHelper.error("Error creating the log file for unread mails.");
+				logger.info("Unable to create the log file for unread mails.");
+				throw e;
 			}
 		}
 	}
 	
-	public void load()
+	public void load() throws Exception
 	{
 		String poolJson = "";
 		String recvJson = "";
@@ -97,8 +109,8 @@ public class MailPool {
 		}
 		catch(Exception e)
 		{
-			e.printStackTrace();
-			LogHelper.error("Error loading mailbox.");
+			logger.info("Unable to load the mail pool.");
+			throw e;
 		}
 		
 		try
@@ -107,8 +119,8 @@ public class MailPool {
 		}
 		catch(Exception e)
 		{
-			e.printStackTrace();
-			LogHelper.error("Error loading received mails.");
+			logger.info("Unable to load received mails.");
+			throw e;
 		}
 		
 		try
@@ -117,8 +129,8 @@ public class MailPool {
 		}
 		catch(Exception e)
 		{
-			e.printStackTrace();
-			LogHelper.error("Error loading unread mails.");
+			logger.info("Unable to load unread mails.");
+			throw e;
 		}
 		
 		if(!poolJson.isEmpty() && !recvJson.isEmpty() && !unreadJson.isEmpty())
@@ -133,8 +145,8 @@ public class MailPool {
 		}
 	}
 	
-	public void save()
-	{
+	public void save() throws Exception
+	{		
 		Gson gson = new Gson();
 		
 		try
@@ -143,8 +155,8 @@ public class MailPool {
 		}
 		catch(Exception e)
 		{
-			e.printStackTrace();
-			LogHelper.error("Error logging mailbox.");
+			logger.info("Unable to log the mail pool.", e);
+			throw e;
 		}
 		
 		try
@@ -153,8 +165,8 @@ public class MailPool {
 		}
 		catch(Exception e)
 		{
-			e.printStackTrace();
-			LogHelper.error("Error logging received mails.");
+			logger.info("Unable to log received mails.", e);
+			throw e;
 		}
 		
 		try
@@ -163,19 +175,69 @@ public class MailPool {
 		}
 		catch(Exception e)
 		{
-			e.printStackTrace();
-			LogHelper.error("Error logging unread mails.");
+			logger.info("Unable to log unread mails.");
+			throw e;
 		}
 	}
 	
-	public void send(UUID player, String from, String title, String msg)
+	/**
+	 * Store the mail to the mail pool, the sender UUID can be null if it is generated by other mods, not by player
+	 * @param player
+	 * @param from
+	 * @param title
+	 * @param msg
+	 */
+	public void send(UUID to, UUID from, String sender, String title, String msg)
 	{
+		Mail mail = new Mail(to, from, sender, title, msg);
 		
+		this.pool.put(mail.getId(), mail);
+		
+		if(this.recv.get(to) == null)
+		{
+			this.recv.put(to, new HashSet<UUID>());
+		}
+		this.recv.get(to).add(mail.getId());
+		
+		if(this.unread.get(to) == null)
+		{
+			this.unread.put(to, new HashSet<UUID>());
+		}
+		this.unread.get(to).add(mail.getId());
+		
+		try {
+			this.save();
+		} catch (Exception e) {
+			logger.fatal("Error occurs at MailPool#save()", e);
+		}
 	}
 	
-	public void send(UUID player, String from, String msg)
+	public File getStorageDir()
 	{
-		this.send(player, from, , msg);
+		return this.mailpoolStorage;
+	}
+	
+	public static MailPool init(FMLPostInitializationEvent e)
+	{
+		if(e.getSide() == Side.SERVER)
+		{
+			try
+			{
+				MailPool.instance = new MailPool(new File(Config.Logs.mailStorageDir));
+				MailPool.instance.load();
+			}
+			catch(Exception ex)
+			{
+				logger.fatal("Fail to init MailPool", ex);
+			}
+		}
+		
+		return MailPool.instance;
+	}
+	
+	public static MailPool instance()
+	{
+		return MailPool.instance;
 	}
 	
 	public static class Mail
@@ -184,10 +246,10 @@ public class MailPool {
 		private final Header header;
 		private final String content;
 		
-		public Mail(UUID to, String from, String title, String c)
+		public Mail(UUID to, UUID from, String senderName, String title, String c)
 		{
 			if(title.isEmpty()) title = "mail.MailBox.defaultTitle";
-			this.header = new Header(to, from, title);
+			this.header = new Header(to, from, senderName, title);
 			this.content = c;
 		}
 		
@@ -196,7 +258,7 @@ public class MailPool {
 			return this.mid;
 		}
 		
-		public Timestamp getTimestamp()
+		public Calendar getTimestamp()
 		{
 			return this.header.timestamp;
 		}
@@ -206,7 +268,12 @@ public class MailPool {
 			return this.header.to;
 		}
 		
-		public String getSender()
+		public String getSenderName()
+		{
+			return this.header.sender;
+		}
+		
+		public UUID getSender()
 		{
 			return this.header.from;
 		}
@@ -223,14 +290,16 @@ public class MailPool {
 		
 		private static final class Header
 		{
-			private final Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+			private final Calendar timestamp = Calendar.getInstance();
 			private final UUID to;
-			private final String from;
+			private final String sender;
+			private final UUID from;
 			private final String title;
 			
-			public Header(UUID t, String fr, String ttl)
+			public Header(UUID t, UUID fr, String s, String ttl)
 			{
 				this.to = t;
+				this.sender = s;
 				this.from = fr;
 				this.title = ttl;
 			}
