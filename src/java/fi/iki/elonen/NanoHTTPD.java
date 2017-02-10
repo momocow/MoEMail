@@ -880,6 +880,7 @@ public abstract class NanoHTTPD {
                 try {
                     read = this.inputStream.read(buf, 0, HTTPSession.BUFSIZE);
                 } catch (SSLException e) {
+                    safeClose(this.outputStream);
                     throw e;
                 } catch (IOException e) {
                     safeClose(this.inputStream);

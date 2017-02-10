@@ -45,7 +45,10 @@ minecraft {
 }
 
 dependencies {
-	compile files("libs/MoBasic-1.9.4-0.0.1.0.jar")
+	compile files("../libs/MoBasic-1.9.4-0.0.1.0.jar")
+	compile 'com.auth0:java-jwt:3.1.0'
+	compile 'org.jsoup:jsoup:1.10.2'
+	compile 'com.fasterxml.jackson.core:jackson-databind:2.8.4'
 }
 
 processResources

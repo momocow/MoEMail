@@ -3,8 +3,8 @@ package me.momocow.moemail;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import me.momocow.moemail.config.Config;
 import me.momocow.moemail.init.ModCommands;
+import me.momocow.moemail.init.ModConfigs;
 import me.momocow.moemail.reference.Reference;
 import me.momocow.moemail.server.MailPool;
 import me.momocow.moemail.server.MoHTTPD;
@@ -26,13 +26,13 @@ public class MoEMail
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent e)
 	{
-		Config.init(e);		
+		ModConfigs.init(e);
 	}
 	
 	@EventHandler
-	public void postInit(FMLPostInitializationEvent e)
+	public void postInit(FMLPostInitializationEvent e) throws Exception
 	{
-		Config.instance().save();
+		ModConfigs.save(e);
 		MailPool.init(e);
 		MoHTTPD.init(e);
 	}
@@ -48,7 +48,7 @@ public class MoEMail
 	}
 	
 	@EventHandler
-	public void serverStopped(FMLServerStoppingEvent e)
+	public void serverStopping(FMLServerStoppingEvent e)
 	{
 		MoHTTPD.stop(e);
 	}

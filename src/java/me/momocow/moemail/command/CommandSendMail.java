@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import com.mojang.authlib.GameProfile;
-
 import me.momocow.mobasic.command.MoCommand;
 import me.momocow.mobasic.proxy.Server;
 import me.momocow.moemail.reference.Reference;
@@ -51,8 +49,7 @@ public class CommandSendMail extends MoCommand
 		}
 		else
 		{
-			GameProfile profile = Server.getPlayerProfile(args[0]);
-			UUID receiverID = (profile == null)? null: profile.getId();
+			UUID receiverID = Server.getPlayerId(args[0]);
 			
 			String title = args[1];
 			if(title.equals("*") || title.isEmpty())

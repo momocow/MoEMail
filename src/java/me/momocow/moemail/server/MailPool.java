@@ -1,22 +1,19 @@
 package me.momocow.moemail.server;
 
 import java.io.File;
-import java.lang.reflect.Type;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
+import me.momocow.mobasic.util.StorageFile;
 import me.momocow.moemail.MoEMail;
-import me.momocow.moemail.config.Config;
+import me.momocow.moemail.init.ModConfigs;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -27,157 +24,52 @@ public class MailPool
 	private static Logger logger = MoEMail.logger;
 	
 	private final File mailpoolStorage;
-	private final File poolLog;
-	private final File recvLog;
-	private final File unreadLog;
-	private String encoding = "UTF-8";
+	private final StorageFile<HashMap<UUID, Mail>> poolLog;
+	private final StorageFile<HashMap<UUID, Set<UUID>>> recvLog;
+	private final StorageFile<HashMap<UUID, Set<UUID>>> unreadLog;
 	
 	/**
 	 * Map[mailID]=Mail
 	 */
-	private Map<UUID, Mail> pool = new HashMap<UUID, Mail>();
+	private HashMap<UUID, Mail> pool = new HashMap<UUID, Mail>();
 	/**
 	 * Map[recvrID]=Set[unreadMailID]
 	 */
-	private Map<UUID, Set<UUID>> unread = new HashMap<UUID, Set<UUID>>();
+	private HashMap<UUID, Set<UUID>> unread = new HashMap<UUID, Set<UUID>>();
 	/**
 	 * Map[recvrID]=Set[mailID]
 	 */
-	private Map<UUID, Set<UUID>> recv = new HashMap<UUID, Set<UUID>>();
+	private HashMap<UUID, Set<UUID>> recv = new HashMap<UUID, Set<UUID>>();
 	
 	private MailPool(File logDir) throws Exception
 	{
 		this.mailpoolStorage = new File(logDir, "mailpool");
-		this.poolLog = new File(this.mailpoolStorage, "pool.log");
-		this.recvLog = new File(this.mailpoolStorage, "recv.log");
-		this.unreadLog = new File(this.mailpoolStorage, "unread.log");
 		
-		if(!this.mailpoolStorage.exists())
+		try
 		{
-			this.mailpoolStorage.mkdirs();
+			this.poolLog = new StorageFile<HashMap<UUID, Mail>> (new File(this.mailpoolStorage, "pool.log"), logger);
+			this.recvLog = new StorageFile<HashMap<UUID, Set<UUID>>> (new File(this.mailpoolStorage, "recv.log"), logger);
+			this.unreadLog = new StorageFile<HashMap<UUID, Set<UUID>>> (new File(this.mailpoolStorage, "unread.log"), logger);
 		}
-		
-		if(!this.poolLog.exists())
+		catch(Exception e)
 		{
-			try
-			{
-				this.poolLog.createNewFile();
-			}
-			catch(Exception e)
-			{
-				logger.info("Unable to create the log file for the mail pool.");
-				throw e;
-			}
-		}
-		
-		if(!this.recvLog.exists())
-		{
-			try
-			{
-				this.recvLog.createNewFile();
-			}
-			catch(Exception e)
-			{
-				logger.info("Unable to create the log file for received mails.");
-				throw e;
-			}
-		}
-		
-		if(!this.unreadLog.exists())
-		{
-			try
-			{
-				this.unreadLog.createNewFile();
-			}
-			catch(Exception e)
-			{
-				logger.info("Unable to create the log file for unread mails.");
-				throw e;
-			}
+			logger.warn("Fail to initialize the local storage files.", e);
+			throw e;
 		}
 	}
 	
 	public void load() throws Exception
 	{
-		String poolJson = "";
-		String recvJson = "";
-		String unreadJson = "";
-		
-		try
-		{
-			poolJson = FileUtils.readFileToString(this.poolLog, this.encoding);
-		}
-		catch(Exception e)
-		{
-			logger.info("Unable to load the mail pool.");
-			throw e;
-		}
-		
-		try
-		{
-			recvJson = FileUtils.readFileToString(this.recvLog, this.encoding);
-		}
-		catch(Exception e)
-		{
-			logger.info("Unable to load received mails.");
-			throw e;
-		}
-		
-		try
-		{
-			unreadJson = FileUtils.readFileToString(this.unreadLog, this.encoding);
-		}
-		catch(Exception e)
-		{
-			logger.info("Unable to load unread mails.");
-			throw e;
-		}
-		
-		if(!poolJson.isEmpty() && !recvJson.isEmpty() && !unreadJson.isEmpty())
-		{
-			Gson gson = new Gson();
-			Type mailMap = new TypeToken<Map<UUID, Mail>>(){}.getType();
-			Type midMap = new TypeToken<Map<UUID, Set<UUID>>>(){}.getType();
-			
-			this.pool = gson.fromJson(poolJson, mailMap);
-			this.recv = gson.fromJson(recvJson, midMap);
-			this.unread = gson.fromJson(unreadJson, midMap);
-		}
+		this.pool = this.poolLog.load();
+		this.recv = this.recvLog.load();
+		this.unread = this.unreadLog.load();
 	}
 	
 	public void save() throws Exception
 	{		
-		Gson gson = new Gson();
-		
-		try
-		{
-			FileUtils.writeStringToFile(this.poolLog, gson.toJson(this.pool), this.encoding);
-		}
-		catch(Exception e)
-		{
-			logger.info("Unable to log the mail pool.", e);
-			throw e;
-		}
-		
-		try
-		{
-			FileUtils.writeStringToFile(this.recvLog, gson.toJson(this.recv), this.encoding);
-		}
-		catch(Exception e)
-		{
-			logger.info("Unable to log received mails.", e);
-			throw e;
-		}
-		
-		try
-		{
-			FileUtils.writeStringToFile(this.unreadLog, gson.toJson(this.unread), this.encoding);
-		}
-		catch(Exception e)
-		{
-			logger.info("Unable to log unread mails.");
-			throw e;
-		}
+		this.poolLog.save(this.pool);
+		this.recvLog.save(this.recv);
+		this.unreadLog.save(this.unread);
 	}
 	
 	/**
@@ -223,7 +115,7 @@ public class MailPool
 		{
 			try
 			{
-				MailPool.instance = new MailPool(new File(Config.Logs.mailStorageDir));
+				MailPool.instance = new MailPool(new File(ModConfigs.general.mailStorageDir));
 				MailPool.instance.load();
 			}
 			catch(Exception ex)
