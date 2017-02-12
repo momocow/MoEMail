@@ -39,7 +39,7 @@ public class ModConfigs
 			general = (ConfigGeneral)initConfig(ConfigGeneral.class);
 			
 			//Configs for the dedicated server
-			if(e.getSide() == Side.SERVER)
+			if(!general.httpd.isDedicatedServerOnly || e.getSide() == Side.SERVER)
 			{
 				httpd = (ConfigHttpd)initConfig(ConfigHttpd.class);
 			}

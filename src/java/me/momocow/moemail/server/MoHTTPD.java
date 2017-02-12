@@ -656,7 +656,7 @@ public class MoHTTPD extends NanoHTTPD
 	
 	public static MoHTTPD init(FMLPostInitializationEvent e) throws Exception
 	{
-		if(e.getSide() == Side.SERVER && MoHTTPD.instance == null)
+		if((!ModConfigs.general.httpd.isDedicatedServerOnly || e.getSide() == Side.SERVER) && MoHTTPD.instance == null)
 		{
 			try {
 				MoHTTPD.instance = new MoHTTPD();
@@ -673,7 +673,7 @@ public class MoHTTPD extends NanoHTTPD
 	
 	public static MoHTTPD start(FMLServerStartingEvent e)
 	{
-		if(e.getSide() == Side.SERVER && MoHTTPD.instance != null)
+		if((!ModConfigs.general.httpd.isDedicatedServerOnly || e.getSide() == Side.SERVER) && MoHTTPD.instance != null)
 		{
 			try
 			{
@@ -693,15 +693,9 @@ public class MoHTTPD extends NanoHTTPD
 	
 	public static void stop(FMLServerStoppingEvent e)
 	{
-		if(e.getSide() == Side.SERVER && MoHTTPD.instance != null)
+		if((!ModConfigs.general.httpd.isDedicatedServerOnly || e.getSide() == Side.SERVER) && MoHTTPD.instance != null)
 		{
 			logger.info("Server is stopping.");
-			
-			try {
-				MoHTTPD.instance.saveData();
-			} catch (Exception e1) {
-				logger.warn("Fail to save the server private data. ");
-			}
 			MoHTTPD.instance.stop();
 		}
 	}

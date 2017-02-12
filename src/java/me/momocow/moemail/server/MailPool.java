@@ -1,9 +1,11 @@
 package me.momocow.moemail.server;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,8 +18,12 @@ import me.momocow.moemail.MoEMail;
 import me.momocow.moemail.init.ModConfigs;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
-import net.minecraftforge.fml.relauncher.Side;
 
+/**
+ * Make the class to thread-safe
+ * @author MomoCow
+ *
+ */
 public class MailPool 
 {
 	private static MailPool instance;
@@ -26,16 +32,11 @@ public class MailPool
 	private final File mailpoolStorage;
 	private final StorageFile<HashMap<UUID, Mail>> poolLog;
 	private final StorageFile<HashMap<UUID, Set<UUID>>> recvLog;
-	private final StorageFile<HashMap<UUID, Set<UUID>>> unreadLog;
 	
 	/**
 	 * Map[mailID]=Mail
 	 */
 	private HashMap<UUID, Mail> pool = new HashMap<UUID, Mail>();
-	/**
-	 * Map[recvrID]=Set[unreadMailID]
-	 */
-	private HashMap<UUID, Set<UUID>> unread = new HashMap<UUID, Set<UUID>>();
 	/**
 	 * Map[recvrID]=Set[mailID]
 	 */
@@ -49,7 +50,6 @@ public class MailPool
 		{
 			this.poolLog = new StorageFile<HashMap<UUID, Mail>> (new File(this.mailpoolStorage, "pool.log"), logger);
 			this.recvLog = new StorageFile<HashMap<UUID, Set<UUID>>> (new File(this.mailpoolStorage, "recv.log"), logger);
-			this.unreadLog = new StorageFile<HashMap<UUID, Set<UUID>>> (new File(this.mailpoolStorage, "unread.log"), logger);
 		}
 		catch(Exception e)
 		{
@@ -58,18 +58,16 @@ public class MailPool
 		}
 	}
 	
-	public void load() throws Exception
+	synchronized public void load() throws Exception
 	{
 		this.pool = this.poolLog.load();
 		this.recv = this.recvLog.load();
-		this.unread = this.unreadLog.load();
 	}
 	
-	public void save() throws Exception
+	synchronized public void save() throws Exception
 	{		
 		this.poolLog.save(this.pool);
 		this.recvLog.save(this.recv);
-		this.unreadLog.save(this.unread);
 	}
 	
 	/**
@@ -79,7 +77,7 @@ public class MailPool
 	 * @param title
 	 * @param msg
 	 */
-	public void send(UUID to, UUID from, String sender, String title, String msg)
+	synchronized public void send(UUID to, UUID from, String sender, String title, String msg)
 	{
 		Mail mail = new Mail(to, from, sender, title, msg);
 		
@@ -90,12 +88,6 @@ public class MailPool
 			this.recv.put(to, new HashSet<UUID>());
 		}
 		this.recv.get(to).add(mail.getId());
-		
-		if(this.unread.get(to) == null)
-		{
-			this.unread.put(to, new HashSet<UUID>());
-		}
-		this.unread.get(to).add(mail.getId());
 		
 		try {
 			this.save();
@@ -109,25 +101,22 @@ public class MailPool
 		return this.mailpoolStorage;
 	}
 	
-	public static MailPool init(FMLPostInitializationEvent e)
+	synchronized public static MailPool init(FMLPostInitializationEvent e)
 	{
-		if(e.getSide() == Side.SERVER)
+		try
 		{
-			try
-			{
-				MailPool.instance = new MailPool(new File(ModConfigs.general.mailStorageDir));
-				MailPool.instance.load();
-			}
-			catch(Exception ex)
-			{
-				logger.fatal("Fail to init MailPool", ex);
-			}
+			MailPool.instance = new MailPool(new File(ModConfigs.general.mailStorageDir));
+			MailPool.instance.load();
+		}
+		catch(Exception ex)
+		{
+			logger.fatal("Fail to init MailPool", ex);
 		}
 		
 		return MailPool.instance;
 	}
 	
-	public static MailPool instance()
+	synchronized  public static MailPool instance()
 	{
 		return MailPool.instance;
 	}
@@ -137,6 +126,7 @@ public class MailPool
 		private final UUID mid = MathHelper.getRandomUUID();
 		private final Header header;
 		private final String content;
+		private boolean isUnread = true;
 		
 		public Mail(UUID to, UUID from, String senderName, String title, String c)
 		{
@@ -178,6 +168,16 @@ public class MailPool
 		public String getContent()
 		{
 			return this.content;
+		}
+		
+		public boolean isUnread()
+		{
+			return this.isUnread;
+		}
+		
+		public void setRead()
+		{
+			this.isUnread = false;
 		}
 		
 		private static final class Header
