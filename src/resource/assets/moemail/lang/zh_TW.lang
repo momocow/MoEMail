@@ -10,4 +10,23 @@ key.moemail.category.name=MoEMail
 
 #Gui
 gui.moemail.GuiMailBox.title=我的麥塊信箱
-gui.moemail.GuiMailBox.weblink=在瀏覽器開啟
+gui.moemail.GuiMailBox.pageIndex=第%d頁/共%d頁
+gui.moemail.GuiMailBox.accountInfo=帳號資訊
+gui.moemail.GuiMail.title=我的訊息
+gui.moemail.GuiMail.time=時間
+gui.moemail.GuiMail.sender=寄件者
+gui.moemail.GuiMail.mailTitle=標題
+gui.moemail.GuiMail.loading=載入中
+gui.moemail.GuiMail.home=首頁
+gui.moemail.GuiMailBoxAccount.title=帳號資訊
+gui.moemail.GuiMailBoxAccount.weblink=開啟信箱網頁
+gui.moemail.GuiMailBoxAccount.linkFail=網站連結失敗
+gui.moemail.GuiMailBoxAccount.home=首頁
+gui.moemail.GuiMailBoxAccount.account=帳號
+gui.moemail.GuiMailBoxAccount.warn.accountNotInitialized=請先為網頁版信箱設定密碼
+gui.moemail.GuiMailBoxAccount.warn.maxPasswd=字數已達上限%d字
+gui.moemail.GuiMailBoxAccount.warn.passwdCheckFail=密碼不一致
+gui.moemail.GuiMailBoxAccount.oldPasswd=舊密碼
+gui.moemail.GuiMailBoxAccount.newPasswd=新密碼
+gui.moemail.GuiMailBoxAccount.checkedPasswd=再確認
+gui.moemail.GuiMailBoxAccount.setPasswd=更新密碼

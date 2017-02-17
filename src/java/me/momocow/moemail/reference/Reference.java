@@ -9,4 +9,5 @@ public class Reference
     public static final String DEPENDENCIES = "required-after:Forge@[12.17.0.2051,);required-after:MoBasic@[0.0.1.0,)";
     
     public static final String CLIENTPROXY = "me.momocow." + MOD_ID + ".proxy.ClientProxy";
+    public static final String SERVERPROXY = "me.momocow." + MOD_ID + ".proxy.ServerProxy";
 }

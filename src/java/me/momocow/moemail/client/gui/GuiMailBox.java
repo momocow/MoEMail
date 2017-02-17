@@ -1,20 +1,18 @@
 package me.momocow.moemail.client.gui;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
 import me.momocow.mobasic.client.gui.MoCenteredGuiScreen;
 import me.momocow.mobasic.client.gui.MoGuiScreen;
-import me.momocow.mobasic.client.gui.widget.MoButton;
+import me.momocow.mobasic.client.gui.widget.MoIconButton;
 import me.momocow.mobasic.client.gui.widget.MoVanillaScrollBar;
 import me.momocow.moemail.init.ModChannels;
-import me.momocow.moemail.network.C2SFetchMailPacket;
+import me.momocow.moemail.init.ModConfigs;
+import me.momocow.moemail.network.C2SFetchMailHeaderPacket;
 import me.momocow.moemail.reference.Reference;
-import me.momocow.moemail.server.MailPool.Mail;
+import me.momocow.moemail.server.MailPool.Mail.Header;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
@@ -22,21 +20,25 @@ import net.minecraft.util.text.TextFormatting;
 
 public class GuiMailBox extends MoCenteredGuiScreen
 {
-	private static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
+	public static final int PAGE_SIZE = 6;
+	
+	private final static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
+	private final static ResourceLocation ACCOUNTBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/personalInfoButton.png");
 	private final static ResourceLocation SCROLLBAR = new ResourceLocation(Reference.MOD_ID, "textures/gui/scrollbar.png");
 	private final static String NAME = "GuiMailBox";
 	
-	private int pageCursor = -1;
-	private List<Mail> mails;
-	private Set<UUID> unread;
-	private URI WebURL;
+	private int pageCursor = 0;
+	private int lastPageCount = -1;
+	private int pageCount = -1;
+	private boolean forceReload = true;
 	
 	//text
 	private String textTitle;
-	private String textWebLink;
 	
 	//Gui
 	private MoVanillaScrollBar  scrollbar;
+	private MoIconButton accountButton;
+	private List<GuiMailButton> mailButtonList = new ArrayList<GuiMailButton>();
 	
 	public GuiMailBox()
 	{
@@ -44,42 +46,61 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		this.setUnlocalizedName(Reference.MOD_ID + "." + NAME);
 		
 		this.textTitle = I18n.format(this.getUnlocalizedName() + ".title");
-		this.textWebLink = I18n.format(this.getUnlocalizedName() + ".weblink");
-		
-		//ask server for web link
-		//C2SFetchLinkPacket()
 	}
 	
 	@Override
 	public void initGui() 
-	{
+	{		
 		//MUST call super.initGui to draw the centeredScreen at the correct position
 		super.initGui();
+
+		this.scrollbar = new MoVanillaScrollBar(this.getGlobalX(224), this.getGlobalY(42), this.zLevel, this.getGlobalY(152), 12, 15, this.pageCount, this.pageCursor, SCROLLBAR);
 		
-		this.scrollbar = new MoVanillaScrollBar(this.getGlobalX(224), this.getGlobalY(42), this.zLevel, this.getGlobalY(152), 12, 15, 1, SCROLLBAR);
-		
+		int initializedMail = this.mailButtonList.size();
 		for(int i = 0; i< 6; i++)
 		{
-			GuiMailButton mail = new GuiMailButton(i, this.getGlobalX(19), this.getGlobalY(43 + 18 * i), 198, 18);
-			mail.visible = true;
-			mail.setUnread(false);
-			this.buttonList.add(mail);
+			if(i >= initializedMail)
+			{
+				GuiMailButton mail = new GuiMailButton(i, this.getGlobalX(19), this.getGlobalY(43 + 18 * i), 198, 18);
+				mail.visible = true;
+				mail.setUnread(false);
+				this.mailButtonList.add(mail);
+			}
+			else
+			{
+				this.mailButtonList.get(i).setPosition(this.getGlobalX(19), this.getGlobalY(43 + 18 * i));
+			}
 		}
 		
-		this.buttonList.add(new GuiButton(6, this.getGlobalX(170), this.getGlobalY(17), 60, 20, this.textWebLink));
+		if(!mc.isSingleplayer() || !ModConfigs.general.httpd.isDedicatedServerOnly)
+		{
+			this.accountButton = new MoIconButton(1, this.getGlobalX(220), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, ACCOUNTBUTTON);
+			this.accountButton.visible = true;
+			this.accountButton.enabled = true;
+			this.clearTooltip(this.accountButton.id);
+			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo"));
+			this.buttonList.add(this.accountButton);
+		}
 	}
 	
 	@Override
 	public void updateScreen() 
 	{
 		//here pageCursor means the page shown BEFORE update, it is used to check for page change
-		if(this.pageCursor != this.scrollbar.getStage())
+		if(this.forceReload || this.pageCursor != this.scrollbar.getStage())
 		{
-			ModChannels.mailSyncChannel.sendToServer(new C2SFetchMailPacket(mc.thePlayer.getUniqueID()));
+			ModChannels.mailSyncChannel.sendToServer(new C2SFetchMailHeaderPacket(mc.thePlayer.getUniqueID(), this.scrollbar.getStage()));
+		}
+		
+		if(this.lastPageCount != this.pageCount)
+		{
+			this.initGui();
 		}
 		
 		//update page cursor
 		this.pageCursor = this.scrollbar.getStage();
+		this.lastPageCount = this.pageCount;
+		this.forceReload = false;
 	}
 	
 	@Override
@@ -89,11 +110,26 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		MoGuiScreen.drawProportionTexturedRect(TEXTURE, this.offsetX, this.offsetY, this.zLevel, 0, 0, 248, 166, 256, 256, this.guiWidth, this.guiHeight);
 		this.scrollbar.drawScrollBar();
 		
-		//title
+		//gui title
 		this.drawCenteredString(fontRendererObj, this.textTitle, this.getCenterX(), this.row(1), fontRendererObj.getColorCode('1'));
 		
-		//mails
+		//default buttons
 		this.drawButtonList(mouseX, mouseY);
+		
+		String textPageIndex = I18n.format(this.getUnlocalizedName() + ".pageIndex", this.pageCursor + 1, this.pageCount);
+		fontRendererObj.drawString(textPageIndex, this.getCenterX() - fontRendererObj.getStringWidth(textPageIndex) / 2, this.getGlobalY(153), fontRendererObj.getColorCode('8'));
+		
+		//mails
+		for(GuiMailButton mbutton: this.mailButtonList)
+		{
+			mbutton.drawButton(mc, mouseX, mouseY);
+		}
+		
+		//hovering text
+		if(this.accountButton.isHovered(mouseX, mouseY))
+		{
+			this.drawTooltip(this.accountButton.id, mouseX, mouseY);
+		}
 	}
 	
 	@Override
@@ -125,17 +161,18 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			{
 				if(button.mousePressed(mc, mouseX, mouseY))
 				{
-					if(button instanceof MoButton)
+					if(button.id == 1)
 					{
-						((MoButton)button).mouseClick(mc, mouseX, mouseY, mouseButton);
+						this.changeGui(new GuiMailBoxAccount(this));
 					}
-					else
-					{
-						if(button.id == 6)
-						{
-							this.openWebMailBox();
-						}
-					}
+				}
+			}
+			
+			for(GuiMailButton mbutton: this.mailButtonList)
+			{
+				if(mbutton.mousePressed(mc, mouseX, mouseY))
+				{
+					mbutton.mouseClick(mc, mouseX, mouseY, mouseButton);
 				}
 			}
 			
@@ -150,13 +187,6 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		}
 	}
 	
-	private void openWebMailBox() {
-		if(this.WebURL != null)
-		{
-			this.openWebLink(this.WebURL);
-		}
-	}
-
 	@Override
 	protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
 		super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
@@ -182,4 +212,34 @@ public class GuiMailBox extends MoCenteredGuiScreen
     {
 		this.scrollbar.mouseWheelMove(wheelMove);
     }
+	
+	public void updatePage(int mailCount, List<Header> headers)
+	{
+		this.pageCount = (int) Math.ceil((double) mailCount / (double)PAGE_SIZE);
+	
+		for(GuiMailButton button: this.mailButtonList)
+		{
+			if(button.id < headers.size())
+			{
+				Header head = headers.get(button.id);
+				button.setMail(head);
+			}
+			else
+			{
+				button.setMail(null);
+			}
+		}
+	}
+	
+	public void setForceReload()
+	{
+		this.forceReload = true;
+	}
+	
+	public void displayGui()
+	{
+		this.forceReload = true;
+		
+		this.changeGui(this);
+	}
 }

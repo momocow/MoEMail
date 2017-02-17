@@ -1,29 +1,23 @@
 package me.momocow.moemail.server;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import me.momocow.mobasic.util.StorageFile;
 import me.momocow.moemail.MoEMail;
 import me.momocow.moemail.init.ModConfigs;
+import me.momocow.moemail.server.MailPool.Mail.Header;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 
-/**
- * Make the class to thread-safe
- * @author MomoCow
- *
- */
 public class MailPool 
 {
 	private static MailPool instance;
@@ -31,7 +25,7 @@ public class MailPool
 	
 	private final File mailpoolStorage;
 	private final StorageFile<HashMap<UUID, Mail>> poolLog;
-	private final StorageFile<HashMap<UUID, Set<UUID>>> recvLog;
+	private final StorageFile<HashMap<UUID, List<UUID>>> recvLog;
 	
 	/**
 	 * Map[mailID]=Mail
@@ -40,7 +34,7 @@ public class MailPool
 	/**
 	 * Map[recvrID]=Set[mailID]
 	 */
-	private HashMap<UUID, Set<UUID>> recv = new HashMap<UUID, Set<UUID>>();
+	private HashMap<UUID, List<UUID>> recv = new HashMap<UUID, List<UUID>>();
 	
 	private MailPool(File logDir) throws Exception
 	{
@@ -48,8 +42,8 @@ public class MailPool
 		
 		try
 		{
-			this.poolLog = new StorageFile<HashMap<UUID, Mail>> (new File(this.mailpoolStorage, "pool.log"), logger);
-			this.recvLog = new StorageFile<HashMap<UUID, Set<UUID>>> (new File(this.mailpoolStorage, "recv.log"), logger);
+			this.poolLog = new StorageFile<HashMap<UUID, Mail>> (this.pool, new File(this.mailpoolStorage, "pool.log"), logger);
+			this.recvLog = new StorageFile<HashMap<UUID, List<UUID>>> (this.recv, new File(this.mailpoolStorage, "recv.log"), logger);
 		}
 		catch(Exception e)
 		{
@@ -58,13 +52,13 @@ public class MailPool
 		}
 	}
 	
-	synchronized public void load() throws Exception
+	public void load() throws Exception
 	{
 		this.pool = this.poolLog.load();
 		this.recv = this.recvLog.load();
 	}
 	
-	synchronized public void save() throws Exception
+	public void save() throws Exception
 	{		
 		this.poolLog.save(this.pool);
 		this.recvLog.save(this.recv);
@@ -77,7 +71,7 @@ public class MailPool
 	 * @param title
 	 * @param msg
 	 */
-	synchronized public void send(UUID to, UUID from, String sender, String title, String msg)
+	public void send(UUID to, UUID from, String sender, String title, String msg)
 	{
 		Mail mail = new Mail(to, from, sender, title, msg);
 		
@@ -85,7 +79,7 @@ public class MailPool
 		
 		if(this.recv.get(to) == null)
 		{
-			this.recv.put(to, new HashSet<UUID>());
+			this.recv.put(to, new ArrayList<UUID>());
 		}
 		this.recv.get(to).add(mail.getId());
 		
@@ -101,7 +95,70 @@ public class MailPool
 		return this.mailpoolStorage;
 	}
 	
-	synchronized public static MailPool init(FMLPostInitializationEvent e)
+	public int getMailCount(UUID uid)
+	{
+		return (this.recv.get(uid) != null)? this.recv.get(uid).size(): 0;
+	}
+	
+	public List<Header> getHeadersByPage(UUID uid, int pageSize, int pageIndex)
+	{
+		return this.getHeadersByPage(uid, pageSize, pageIndex, true);
+	}
+	
+	/**
+	 * 
+	 * @param uid
+	 * @param pageSize
+	 * @param pageIndex
+	 * @param isLatestFirst Is it sorted by descending or not?
+	 * @return
+	 */
+	public List<Header> getHeadersByPage(UUID uid, int pageSize, int pageIndex, boolean isLatestFirst)
+	{
+		List<Header> headers = new ArrayList<Header>();
+		List<UUID> mails = this.recv.get(uid);
+		
+		if(mails != null)
+		{
+			int fetchCount = Math.min(mails.size(), pageSize);
+			int fetchOrder = (isLatestFirst)? (-1): 0;
+			int fetchStart = (isLatestFirst)? mails.size() - 1 - pageIndex * pageSize: 0 + pageIndex;
+			for(int i = 0; i< fetchCount; i++)
+			{
+				int index = fetchStart + fetchOrder * i;
+				if(index >= 0 && index < mails.size())
+				{
+					headers.add(this.pool.get(mails.get(index)).getHeader());
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		
+		return headers;
+	}
+	
+	public String readMail(UUID mid)
+	{
+		if(this.pool.get(mid) != null)
+		{
+			this.pool.get(mid).setRead();
+			
+			try {
+				this.save();
+			} catch (Exception e) {
+				logger.fatal("Error occurs at MailPool#save()", e);
+			}
+			
+			return this.pool.get(mid).getContent();
+		}
+		
+		return "<#FAIL_TO_READ_MAIL>";
+	}
+	
+	public static MailPool init(FMLPostInitializationEvent e)
 	{
 		try
 		{
@@ -116,17 +173,16 @@ public class MailPool
 		return MailPool.instance;
 	}
 	
-	synchronized  public static MailPool instance()
+	public static MailPool instance()
 	{
 		return MailPool.instance;
 	}
 	
-	public static class Mail
+	public static class Mail implements Serializable
 	{
-		private final UUID mid = MathHelper.getRandomUUID();
+		private static final long serialVersionUID = 1L;
 		private final Header header;
 		private final String content;
-		private boolean isUnread = true;
 		
 		public Mail(UUID to, UUID from, String senderName, String title, String c)
 		{
@@ -137,10 +193,10 @@ public class MailPool
 		
 		public UUID getId()
 		{
-			return this.mid;
+			return this.header.mid;
 		}
 		
-		public Calendar getTimestamp()
+		public Date getTimestamp()
 		{
 			return this.header.timestamp;
 		}
@@ -172,35 +228,113 @@ public class MailPool
 		
 		public boolean isUnread()
 		{
-			return this.isUnread;
+			return this.header.isUnread;
 		}
 		
 		public void setRead()
 		{
-			this.isUnread = false;
+			this.header.isUnread = false;
 		}
 		
-		private static final class Header
+		public Header getHeader()
 		{
-			private final Calendar timestamp = Calendar.getInstance();
+			return this.header;
+		}
+		
+		public static final class Header implements Serializable
+		{
+			private static final long serialVersionUID = 1L;
+			private final UUID mid;
+			private final Date timestamp;
 			private final UUID to;
 			private final String sender;
 			private final UUID from;
 			private final String title;
+			private boolean isUnread;
 			
-			public Header(UUID t, UUID fr, String s, String ttl)
+			private Header(UUID m, Date ts, UUID t, UUID fr, String s, String ttl, boolean u)
 			{
+				this.mid = m;
+				this.timestamp = ts;
 				this.to = t;
 				this.sender = s;
 				this.from = fr;
 				this.title = ttl;
+				this.isUnread = u;
 			}
 			
-			@Override
-			public String toString() 
+			public Header(UUID t, UUID fr, String s, String ttl)
 			{
-				Gson gson = new Gson();
-				return gson.toJson(this);
+				this(MathHelper.getRandomUUID(), new Date(System.currentTimeMillis()), t, fr, s, ttl, true);
+			}
+			
+			public UUID getId()
+			{
+				return this.mid;
+			}
+			
+			public Date getTimestamp()
+			{
+				return this.timestamp;
+			}
+			
+			public UUID getReceiver()
+			{
+				return this.to;
+			}
+			
+			public UUID getSender()
+			{
+				return this.from;
+			}
+			
+			public String getSenderName()
+			{
+				return this.sender;
+			}
+			
+			public String getTitle()
+			{
+				return this.title;
+			}
+			
+			public boolean isUnread()
+			{
+				return this.isUnread;
+			}
+			
+			public void setRead()
+			{
+				this.isUnread = false;
+			}
+			
+			
+			
+			public NBTTagCompound toNBT() 
+			{
+				NBTTagCompound tag = new NBTTagCompound();
+				tag.setUniqueId("mid", this.mid);
+				tag.setUniqueId("to", this.to);
+				tag.setUniqueId("from", this.from);
+				tag.setString("sender", this.sender);
+				tag.setString("title", this.title);
+				tag.setLong("timestamp", this.timestamp.getTime());
+				tag.setBoolean("unread", this.isUnread);
+				
+				return tag;
+			}
+			
+			public static Header fromNBT(NBTTagCompound tag)
+			{
+				UUID mid = tag.getUniqueId("mid");
+				UUID to = tag.getUniqueId("to");
+				UUID from = tag.getUniqueId("from");
+				String sender = tag.getString("sender");
+				String title = tag.getString("title");
+				Date timestamp = new Date(tag.getLong("timestamp"));
+				Boolean unread = tag.getBoolean("unread");
+				
+				return new Header(mid, timestamp, to, from, sender, title, unread);
 			}
 		}
 	}

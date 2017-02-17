@@ -3,10 +3,6 @@ package me.momocow.moemail;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import me.momocow.moemail.init.ModChannels;
-import me.momocow.moemail.init.ModCommands;
-import me.momocow.moemail.init.ModConfigs;
-import me.momocow.moemail.init.ModKeyBindings;
 import me.momocow.moemail.proxy.CommonProxy;
 import me.momocow.moemail.reference.Reference;
 import net.minecraftforge.fml.common.Mod;
@@ -24,7 +20,7 @@ public class MoEMail
 	@Mod.Instance(Reference.MOD_ID)
 	public static MoEMail instance;
 	
-	@SidedProxy(clientSide = Reference.CLIENTPROXY)
+	@SidedProxy(clientSide = Reference.CLIENTPROXY, serverSide=Reference.SERVERPROXY)
 	public static CommonProxy proxy;
 		
 	public static Logger logger = LogManager.getLogger(Reference.MOD_ID);
@@ -35,9 +31,6 @@ public class MoEMail
 		logger.info("<PRE INIT>");
 		
 		proxy.preInit(e);
-		
-		ModConfigs.init(e);
-		ModChannels.init(e);
 	}
 	
 	@EventHandler
@@ -46,9 +39,6 @@ public class MoEMail
 		logger.info("<INIT>");
 		
 		proxy.init(e);
-		proxy.registerGuiHandler();
-		
-		ModKeyBindings.init(e);
 	}
 	
 	@EventHandler
@@ -57,16 +47,12 @@ public class MoEMail
 		logger.info("<POST INIT>");
 		
 		proxy.postInit(e);
-		
-		ModConfigs.save(e);
 	}
 	
 	@EventHandler
 	public void serverStarting(FMLServerStartingEvent e) throws Exception
 	{
 		logger.info("Server is starting...");
-		
-		ModCommands.register(e);
 		
 		proxy.serverStarting(e);
 	}

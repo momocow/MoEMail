@@ -114,4 +114,3 @@ public class CommandSendMail extends MoCommand
 		return index == 1;
 	}
 }
-//哈囉哈

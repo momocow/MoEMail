@@ -106,7 +106,7 @@ public class MoHTTPD extends NanoHTTPD
 		
 		try
 		{
-			this.fileUID2DigestMap = new StorageFile<HashMap<UUID, String>>(new File(MailPool.instance().getStorageDir(), "authen.log"), logger);
+			this.fileUID2DigestMap = new StorageFile<HashMap<UUID, String>>(new HashMap<UUID, String>(), new File(MailPool.instance().getStorageDir(), "authen.log"), logger);
 			this.loadData();
 		}
 		catch(Exception e)
@@ -654,6 +654,21 @@ public class MoHTTPD extends NanoHTTPD
 		}
 	}
 	
+	public String getURL()
+	{
+		return MoHTTPD.instance.www.getURL(Page.ENTRANCE);
+	}
+	
+	public boolean hasUser(UUID uid)
+	{
+		return this.mapUID2Digest.get(uid) != null;
+	}
+	
+	public static final MoHTTPD instance()
+	{
+		return MoHTTPD.instance;
+	}
+	
 	public static MoHTTPD init(FMLPostInitializationEvent e) throws Exception
 	{
 		if((!ModConfigs.general.httpd.isDedicatedServerOnly || e.getSide() == Side.SERVER) && MoHTTPD.instance == null)
@@ -772,7 +787,7 @@ public class MoHTTPD extends NanoHTTPD
 					return this.baseURI + "home";
 				case ENTRANCE:
 				default:
-					return "";	
+					return this.baseURI.toString();	
 			}
 		}
 	}
