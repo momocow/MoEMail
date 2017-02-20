@@ -90,6 +90,18 @@ public class MailPool
 		}
 	}
 	
+	public void removeMail(UUID player, UUID mail)
+	{
+		if(mail != null && player != null)
+		{
+			this.pool.remove(mail);
+			if(this.recv.get(player) != null)
+			{
+				this.recv.get(player).remove(mail);
+			}
+		}
+	}
+	
 	public File getStorageDir()
 	{
 		return this.mailpoolStorage;

@@ -244,7 +244,14 @@ public class MoHTTPD extends NanoHTTPD
 	 */
 	public boolean authenticate(UUID usr, String pw)
 	{
-		if(this.mapUID2Digest.get(usr) != null && this.mapUID2Digest.get(usr).equals(pw))
+		String digest = null;
+		try {
+			digest = MoHTTPD.digest(pw);
+		} catch (NoSuchAlgorithmException e) {
+			logger.info("Fail to digest the password when authentication. ", e);
+		}
+		
+		if(this.mapUID2Digest.get(usr) != null && this.mapUID2Digest.get(usr).equals(digest))
 		{
 			//operation after user successfully logging in
 			return true;
@@ -333,7 +340,7 @@ public class MoHTTPD extends NanoHTTPD
 	        			switch(Errno.getErrno(Integer.decode(fyi.get(fyi.size() - 1))))
 	        			{
 	        				case ERRLOGIN:
-	        					feedback = "登入失敗！";
+	        					feedback = "��憭望���";
 	        				case NOTHING:
 	        				default:
 	        			}
@@ -368,16 +375,10 @@ public class MoHTTPD extends NanoHTTPD
 	        		UUID uid = Server.getPlayerId(this.getLastInList(params.get("username")));
 	        		if(uid != null)
 	        		{
-		        		String pw = null;
-						try {
-							pw = this.digest(this.getLastInList(params.get("password")));
-							if(this.authenticate(uid, pw))
-			        		{
-			        			response = this.createToken(uid, pw, session.getRemoteIpAddress());
-			        		}
-						} catch (NoSuchAlgorithmException e1) {
-							logger.warn("User [" + uid + "] fails to log in.");
-						}
+						if(this.authenticate(uid, this.getLastInList(params.get("password"))))
+		        		{
+		        			response = this.createToken(uid, this.mapUID2Digest.get(uid), session.getRemoteIpAddress());
+		        		}
 	        		}
         		}
         		if(response == null) response =  this.getDefaultRedirect(Errno.ERRLOGIN);
@@ -463,26 +464,11 @@ public class MoHTTPD extends NanoHTTPD
 		return doc;
 	}
 	
-	private String digest(String text) throws NoSuchAlgorithmException
-	{
-		MessageDigest messageDigest;
-		try {
-			messageDigest = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException e) {
-			logger.warn("Can't encrypt the password. ", e);
-			throw e;
-		}
-		
-		messageDigest.update(text.getBytes());
-
-		return new String(messageDigest.digest());
-	}
-	
 	private String makeSecret(String seed, String ip)
 	{
 		try
 		{
-			return this.digest(seed + this.digest(ip));
+			return MoHTTPD.digest(seed + MoHTTPD.digest(ip));
 		}
 		catch(Exception e)
 		{
@@ -631,27 +617,30 @@ public class MoHTTPD extends NanoHTTPD
 		return "";
 	}
 	
-	private void registerUser(UUID uid, String digest)
-	{
-		this.mapUID2Digest.put(uid, digest);
-	}
-	
-	public void registerUser(String username, String rawPass)
+	public void registerUser(UUID uid, String rawPass)
 	{
 		try
 		{
-			this.registerUser(Server.getPlayerId(username), this.digest(rawPass));
+			this.mapUID2Digest.put(uid, MoHTTPD.digest(rawPass));
 		}
 		catch(Exception e)
 		{
 			logger.warn("Fail to register the new user. ", e);
 		}
 		
-		try {
+		try 
+		{
 			this.saveData();
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			logger.warn("Fail to save the new user. ");
 		}
+	}
+	
+	public void registerUser(String username, String rawPass)
+	{
+		this.registerUser(Server.getPlayerId(username), rawPass);
 	}
 	
 	public String getURL()
@@ -663,10 +652,32 @@ public class MoHTTPD extends NanoHTTPD
 	{
 		return this.mapUID2Digest.get(uid) != null;
 	}
-	
+		
 	public static final MoHTTPD instance()
 	{
 		return MoHTTPD.instance;
+	}
+	
+	private static String digest(String text) throws NoSuchAlgorithmException
+	{
+		MessageDigest messageDigest;
+		try {
+			messageDigest = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			logger.warn("Can't encrypt the password. ", e);
+			throw e;
+		}
+		
+		try 
+		{
+			messageDigest.update(text.getBytes("UTF-8"));
+		} 
+		catch (UnsupportedEncodingException e)
+		{
+			messageDigest.update(text.getBytes());
+		}
+
+		return new String(messageDigest.digest());
 	}
 	
 	public static MoHTTPD init(FMLPostInitializationEvent e) throws Exception

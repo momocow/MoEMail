@@ -19,6 +19,8 @@ public class ID
 			public static final int S2CMailBoxPartialDataPacket = 2;
 			public static final int C2SFetchMailContentPacket = 3;
 			public static final int S2CMailContentPacket = 4;
+			public static final int C2SMailDeletePacket = 5;
+			public static final int S2CMailDeleteResponsePacket = 6;
 		}
 		
 		public static final class MailHttpd
@@ -27,6 +29,8 @@ public class ID
 			public static final int S2CMailBoxURLPacket = 2;
 			public static final int C2SCheckAccountPacket = 3;
 			public static final int S2CAccountResultPacket = 4;
+			public static final int C2SUpdatePasswdPacket = 5;
+			public static final int S2CPasswdResultPacket = 6;
 		}
 	}
 	

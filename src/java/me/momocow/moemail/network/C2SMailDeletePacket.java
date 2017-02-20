@@ -9,46 +9,46 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class C2SFetchMailContentPacket implements IMessage
+public class C2SMailDeletePacket implements IMessage
 {
 	private UUID mid;
+	private UUID uid;
+
+	public C2SMailDeletePacket(){}
 	
-	public C2SFetchMailContentPacket() {}
-	
-	public C2SFetchMailContentPacket(UUID m)
+	public C2SMailDeletePacket(UUID player, UUID mail)
 	{
-		this.mid = m;
+		this.uid = player;
+		this.mid = mail;
 	}
 	
 	@Override
 	public void fromBytes(ByteBuf buf) 
 	{
+		this.uid = UUID.fromString(ByteBufUtils.readUTF8String(buf));
 		this.mid = UUID.fromString(ByteBufUtils.readUTF8String(buf));
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) 
 	{
+		ByteBufUtils.writeUTF8String(buf, this.uid.toString());
 		ByteBufUtils.writeUTF8String(buf, this.mid.toString());
 	}
 
 	//SERVER
-	public static class Handler implements IMessageHandler<C2SFetchMailContentPacket, S2CMailContentPacket>
+	public static class Handler implements IMessageHandler<C2SMailDeletePacket, S2CMailDeleteResponsePacket>
 	{
+
 		@Override
-		public S2CMailContentPacket onMessage(C2SFetchMailContentPacket message, MessageContext ctx) 
+		public S2CMailDeleteResponsePacket onMessage(C2SMailDeletePacket message, MessageContext ctx) 
 		{
-			String msg = "<#FAIL_TO_READ_MAIL>";
-			
-			if(MailPool.instance() != null)
+			synchronized(MailPool.instance())
 			{
-				synchronized(MailPool.instance())
-				{
-					msg = MailPool.instance().readMail(message.mid);
-				}
+				MailPool.instance().removeMail(message.uid, message.mid);
 			}
-			
-			return new S2CMailContentPacket(msg);
+			return new S2CMailDeleteResponsePacket();
 		}
+		
 	}
 }

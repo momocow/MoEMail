@@ -22,7 +22,15 @@ public class C2SFetchMailBoxURLPacket implements IMessage
 		@Override
 		public S2CMailBoxURLPacket onMessage(C2SFetchMailBoxURLPacket message, MessageContext ctx) 
 		{
-			return new S2CMailBoxURLPacket(MoHTTPD.instance().getURL());
+			String url = null;
+			if(MoHTTPD.instance() != null)
+			{
+				synchronized(MoHTTPD.instance())
+				{
+					url = MoHTTPD.instance().getURL();
+				}
+			}
+			return new S2CMailBoxURLPacket(url);
 		}
 	}
 }

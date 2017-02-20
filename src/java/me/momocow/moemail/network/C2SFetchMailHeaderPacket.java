@@ -1,5 +1,6 @@
 package me.momocow.moemail.network;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,13 +44,16 @@ public class C2SFetchMailHeaderPacket implements IMessage
 		@Override
 		public S2CMailHeaderPacket onMessage(C2SFetchMailHeaderPacket message, MessageContext ctx) 
 		{
-			int mailCount;
-			List<Header> mails;
+			int mailCount = 0;
+			List<Header> mails = new ArrayList<Header>();
 			
-			synchronized(MailPool.instance())
+			if(MailPool.instance() != null)
 			{
-				mailCount = MailPool.instance().getMailCount(message.uid);
-				mails = MailPool.instance().getHeadersByPage(message.uid, GuiMailBox.PAGE_SIZE, message.page);
+				synchronized(MailPool.instance())
+				{
+					mailCount = MailPool.instance().getMailCount(message.uid);
+					mails = MailPool.instance().getHeadersByPage(message.uid, GuiMailBox.PAGE_SIZE, message.page);
+				}
 			}
 			
 			return new S2CMailHeaderPacket(mailCount, mails);

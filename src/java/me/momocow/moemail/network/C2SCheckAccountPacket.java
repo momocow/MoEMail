@@ -40,7 +40,10 @@ public class C2SCheckAccountPacket implements IMessage
 			boolean accountInitialized = false;
 			if(MoHTTPD.instance() != null)
 			{
-				accountInitialized = MoHTTPD.instance().hasUser(message.uid);
+				synchronized(MoHTTPD.instance())
+				{
+					accountInitialized = MoHTTPD.instance().hasUser(message.uid);
+				}
 			}
 			return new S2CAccountResultPacket(accountInitialized);
 		}

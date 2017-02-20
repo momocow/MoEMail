@@ -5,6 +5,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import me.momocow.mobasic.client.gui.MoCenteredGuiScreen;
 import me.momocow.mobasic.client.gui.MoGuiScreen;
@@ -25,6 +26,7 @@ public class GuiMail extends MoCenteredGuiScreen
 	private final static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
 	private final static ResourceLocation HOMEBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/homebutton.png");
 	private final static ResourceLocation SCROLLBAR = new ResourceLocation(Reference.MOD_ID, "textures/gui/scrollbar.png");
+	private final static ResourceLocation DELETEBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/deleteButton.png");
 	private final static String NAME = "GuiMail";
 	
 	private DateFormat df = new SimpleDateFormat("MM.dd HH:mm");
@@ -42,6 +44,7 @@ public class GuiMail extends MoCenteredGuiScreen
 	//Gui
 	private MoVanillaScrollBar  scrollbar;
 	private MoIconButton homeButton;
+	private MoIconButton deleteButton;
 	
 	public GuiMail(GuiMailBox p, Header h)
 	{
@@ -69,6 +72,7 @@ public class GuiMail extends MoCenteredGuiScreen
 		
 		this.scrollbar = new MoVanillaScrollBar(this.getGlobalX(224), this.getGlobalY(42), this.zLevel, this.getGlobalY(152), 12, 15, this.pageCount, SCROLLBAR);
 		this.homeButton = new MoIconButton(0, this.getGlobalX(220), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, HOMEBUTTON);
+		this.deleteButton = new MoIconButton(1, this.getGlobalX(195), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, DELETEBUTTON);
 		this.clearTooltip(this.homeButton.id);
 		this.addTooltip(homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home"));
 	}
@@ -110,6 +114,7 @@ public class GuiMail extends MoCenteredGuiScreen
     	}
     	
     	this.homeButton.drawButton(mc, mouseX, mouseY);
+    	this.deleteButton.drawButton(mc, mouseX, mouseY);
     	
     	//hovering text
     	if(this.homeButton.isHovered(mouseX, mouseY))
@@ -142,16 +147,20 @@ public class GuiMail extends MoCenteredGuiScreen
 	{
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		
-		if(this.homeButton.mousePressed(mc, mouseX, mouseY))
-		{
-			this.homeButton.mouseClick(mc, mouseX, mouseY, mouseButton);
-			this.parent.setForceReload();
-			this.changeGui(this.parent);
-			return;
-		}
-		
 		if(mouseButton == 0)
 		{
+			if(this.homeButton.mousePressed(mc, mouseX, mouseY))
+			{
+				this.homeButton.mouseClick(mc, mouseX, mouseY, mouseButton);
+				this.displayParentGui();
+				return;
+			}
+			else if(this.deleteButton.mousePressed(mc, mouseX, mouseY))
+			{
+				this.changeGui(new GuiDeleteMailConfirm(this));
+				return;
+			}
+			
 			if(this.scrollbar.isScrollBarClicked(mouseX, mouseY))
 			{
 				this.scrollbar.mouseClicked(mouseX, mouseY);
@@ -193,5 +202,15 @@ public class GuiMail extends MoCenteredGuiScreen
 	{
 		this.mailContent = this.fontRendererObj.listFormattedStringToWidth(rawContent, 188);
 		this.pageCount = (int) Math.ceil((double) this.mailContent.size() / (double) MAX_LINE);
+	}
+	
+	public void displayParentGui()
+	{
+		this.parent.displayGui();
+	}
+	
+	public UUID getMailId()
+	{
+		return this.header.getId();
 	}
 }

@@ -28,8 +28,8 @@ public class GuiMailBox extends MoCenteredGuiScreen
 	private final static String NAME = "GuiMailBox";
 	
 	private int pageCursor = 0;
-	private int lastPageCount = -1;
-	private int pageCount = -1;
+	private int lastPageCount = 0;
+	private int pageCount = 0;
 	private boolean forceReload = true;
 	
 	//text
@@ -116,7 +116,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		//default buttons
 		this.drawButtonList(mouseX, mouseY);
 		
-		String textPageIndex = I18n.format(this.getUnlocalizedName() + ".pageIndex", this.pageCursor + 1, this.pageCount);
+		String textPageIndex = I18n.format(this.getUnlocalizedName() + ".pageIndex", (this.pageCount == 0)? 0: this.pageCursor + 1, this.pageCount);
 		fontRendererObj.drawString(textPageIndex, this.getCenterX() - fontRendererObj.getStringWidth(textPageIndex) / 2, this.getGlobalY(153), fontRendererObj.getColorCode('8'));
 		
 		//mails
@@ -126,7 +126,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		}
 		
 		//hovering text
-		if(this.accountButton.isHovered(mouseX, mouseY))
+		if(this.accountButton != null && this.accountButton.isHovered(mouseX, mouseY))
 		{
 			this.drawTooltip(this.accountButton.id, mouseX, mouseY);
 		}
