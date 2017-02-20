@@ -55,7 +55,6 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.google.common.collect.Lists;
 
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
@@ -95,7 +94,11 @@ public class MoHTTPD extends NanoHTTPD
 	private final WWW www;
 	
 	private final StorageFile<HashMap<UUID, String>> fileUID2DigestMap;
+//	private final StorageFile<HashSet<String>> fileBlacklistIP;
+//	private StorageFile<HashSet<UUID>> fileBlacklistUser;
 	private HashMap<UUID, String> mapUID2Digest = new HashMap<UUID, String>();
+	private HashSet<String> blacklistIP = new HashSet<String>();
+	private HashSet<UUID> blacklistUser = new HashSet<UUID>();
 	
 	private MoHTTPD() throws Exception
 	{
@@ -107,6 +110,7 @@ public class MoHTTPD extends NanoHTTPD
 		try
 		{
 			this.fileUID2DigestMap = new StorageFile<HashMap<UUID, String>>(new HashMap<UUID, String>(), new File(MailPool.instance().getStorageDir(), "authen.log"), logger);
+//			this.fileBlacklistIP = new StorageFile<HashSet<String>>(this.blacklistIP, new File(MailPool.instance().getStorageDir(), "blacklist-ip"));
 			this.loadData();
 		}
 		catch(Exception e)
@@ -221,19 +225,16 @@ public class MoHTTPD extends NanoHTTPD
         return jwt;
 	}
 	
-	public boolean authorize(DecodedJWT user, Method method, String uri)
+	public boolean authorize(DecodedJWT user, IHTTPSession session)
 	{
-		List<String> request = Lists.newArrayList(uri.replace(" ", "").split("/"));
-		
-		switch(method)
+		if(this.blacklistIP.contains(session.getRemoteIpAddress()))
 		{
-			case GET:
-			case POST:
-			case DELETE:
-			case PUT:
-			default:
-				return true;
+			return false;
 		}
+		
+		if(this.blacklistUser.contains(user.getSubject()))
+		
+		return true;
 	}
 	
 	/**
@@ -312,7 +313,7 @@ public class MoHTTPD extends NanoHTTPD
         }
         
         DecodedJWT jwt = (jwtString != null && !jwtString.isEmpty())? this.verify(session, jwtString): null;
-        if(jwt != null && this.authorize(jwt, method, session.getUri())) //authenticated and authorized connections
+        if(jwt != null && this.authorize(jwt, session)) //authenticated and authorized connections
         {
         	if(session.getUri().matches("/{0,1}") || session.getUri().matches("/home/{0,1}"))
         	{
