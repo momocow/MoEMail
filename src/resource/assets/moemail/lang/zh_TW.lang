@@ -35,3 +35,7 @@ gui.moemail.GuiMailBoxAccount.setPasswd=更新密碼
 gui.moemail.GuiMailBoxAccount.reset=重設
 gui.moemail.GuiDeleteMailConfirm.title=確定要刪除此封訊息?
 gui.moemail.GuiDeleteMailConfirm.warning=刪除之後將無法復原, 請謹慎思考
+gui.moemail.GuiNewMail.title=新訊息
+gui.moemail.GuiNewMail.receiver=收件者
+gui.moemail.GuiNewMail.mailTitle=標題
+gui.moemail.GuiNewMail.home=首頁

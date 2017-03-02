@@ -55,6 +55,7 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.mojang.authlib.GameProfile;
 
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
@@ -65,12 +66,19 @@ import me.momocow.mobasic.util.StorageFile;
 import me.momocow.moemail.MoEMail;
 import me.momocow.moemail.init.ModConfigs;
 import me.momocow.moemail.reference.Reference;
+import net.minecraft.server.management.UserListBans;
+import net.minecraft.server.management.UserListIPBans;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
+/**
+ * TODO 'IP ban' and 'Player Ban' have not tested yet
+ * @author MomoCow
+ *
+ */
 public class MoHTTPD extends NanoHTTPD
 {
 	private static Logger logger = MoEMail.logger;
@@ -97,8 +105,6 @@ public class MoHTTPD extends NanoHTTPD
 //	private final StorageFile<HashSet<String>> fileBlacklistIP;
 //	private StorageFile<HashSet<UUID>> fileBlacklistUser;
 	private HashMap<UUID, String> mapUID2Digest = new HashMap<UUID, String>();
-	private HashSet<String> blacklistIP = new HashSet<String>();
-	private HashSet<UUID> blacklistUser = new HashSet<UUID>();
 	
 	private MoHTTPD() throws Exception
 	{
@@ -110,7 +116,6 @@ public class MoHTTPD extends NanoHTTPD
 		try
 		{
 			this.fileUID2DigestMap = new StorageFile<HashMap<UUID, String>>(new HashMap<UUID, String>(), new File(MailPool.instance().getStorageDir(), "authen.log"), logger);
-//			this.fileBlacklistIP = new StorageFile<HashSet<String>>(this.blacklistIP, new File(MailPool.instance().getStorageDir(), "blacklist-ip"));
 			this.loadData();
 		}
 		catch(Exception e)
@@ -227,14 +232,22 @@ public class MoHTTPD extends NanoHTTPD
 	
 	public boolean authorize(DecodedJWT user, IHTTPSession session)
 	{
-		if(this.blacklistIP.contains(session.getRemoteIpAddress()))
+		UserListBans blacklist  = Server.getBannedPlayers();
+		GameProfile profile = Server.getProfile(this.getPlayerIdByJWT(user));
+		
+		if(blacklist.isBanned(profile))
 		{
 			return false;
 		}
 		
-		if(this.blacklistUser.contains(user.getSubject()))
-		
 		return true;
+	}
+	
+	public boolean isIPBanned(IHTTPSession session)
+	{
+		UserListIPBans blacklist = Server.getBannedIPs();
+		
+		return blacklist.getEntry(session.getRemoteIpAddress()) != null;
 	}
 	
 	/**
@@ -291,107 +304,141 @@ public class MoHTTPD extends NanoHTTPD
 	}
 	
 	@Override
-    public Response serve(IHTTPSession session) {
+    public Response serve(IHTTPSession session) 
+	{
 		Response response = null;
-		
-		Map<String, String> headers = session.getHeaders();
-        Method method = session.getMethod();
-        
-        String jwtString = null;
-        if(headers.containsKey("authorization"))
-        {
-        	String[] auth = headers.get("Authorization").trim().split(" ");
-        	if(auth[0].equals(AUTH_SCHEMA))
-        	{
-        		jwtString = auth[1];
-        	}
-        }
-        else if(headers.containsKey("cookie"))
-        {
-        	Map<String, List<String>> cookies = this.parseCookie(headers.get("cookie"));
-        	jwtString = this.getLastInList(cookies.get(Reference.MOD_ID + "-jwt"));
-        }
-        
-        DecodedJWT jwt = (jwtString != null && !jwtString.isEmpty())? this.verify(session, jwtString): null;
-        if(jwt != null && this.authorize(jwt, session)) //authenticated and authorized connections
-        {
-        	if(session.getUri().matches("/{0,1}") || session.getUri().matches("/home/{0,1}"))
-        	{
-        		Document home = this.www.getHomePage();
-        		home.getElementById("greet").appendText(this.getPlayerNameByJWT(jwt));
-        		response = newFixedLengthResponse(home.outerHtml());
-        		response.setStatus(Status.OK);
-        	}
-        	else if(session.getUri().matches("/auth/logout/{0,1}"))
-        	{
-        		response =  this.getDefaultRedirect(Errno.NOTHING);
-    			response.addHeader("Set-Cookie", Reference.MOD_ID + "-jwt=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Domain=" + this.getHostname() + "; Path=/; HttpOnly");
-        	}
-        }
-        else	//unauthenticated connections
-        {
-        	if(session.getUri().matches("/{0,1}")) //show entrance for user log-in
-        	{
-        		String feedback = "";
-        		if(session.getParameters().containsKey("fyi"))
-        		{
-	        		List<String> fyi = session.getParameters().get("fyi");
-	        		if(fyi != null)
-        			{
-	        			switch(Errno.getErrno(Integer.decode(fyi.get(fyi.size() - 1))))
-	        			{
-	        				case ERRLOGIN:
-	        					feedback = "��憭望���";
-	        				case NOTHING:
-	        				default:
-	        			}
-        			}
-        		}
-        		
-        		Set<String> classFeedback = new HashSet<String>();
-        		classFeedback.add("error");
-        		
-        		Document entrance = this.getPage(Page.ENTRANCE);
-        		entrance.select("#feedback").get(0).appendChild(new Element("div").classNames(classFeedback).appendText(feedback));
-	        	response = newFixedLengthResponse(entrance.outerHtml());
-	        	response.addHeader("WWW-Authenticate", "realm=\"" + Reference.MOD_NAME +"\"");
-	            response.setStatus(Status.UNAUTHORIZED);
-            }
-        	else if(session.getUri().matches("/test/{0,1}"))
-        	{
-        		response = newFixedLengthResponse("Hello");
-        		response.setStatus(Status.OK);
-        	}
-        	else if(session.getUri().matches("/auth/login/{0,1}") && method == Method.POST)
-        	{
-        		try {
-					session.parseBody(new HashMap<String, String>());
-				} catch (Exception e) {
-					logger.warn("Error occurs when fetching request parameters. ", e);
-				}
-        		
-        		Map<String, List<String>>params = session.getParameters();
-        		if(params.get("username") != null && params.get("password") != null)
-        		{
-	        		UUID uid = Server.getPlayerId(this.getLastInList(params.get("username")));
-	        		if(uid != null)
+
+		if(this.isIPBanned(session))
+		{
+			response = newFixedLengthResponse("Banned IPs");
+			response.setStatus(Status.FORBIDDEN);
+		}
+		else
+		{
+			Map<String, String> headers = session.getHeaders();
+	        Method method = session.getMethod();
+	        
+	        String jwtString = null;
+	        if(headers.containsKey("authorization"))
+	        {
+	        	String[] auth = headers.get("Authorization").trim().split(" ");
+	        	if(auth[0].equals(AUTH_SCHEMA))
+	        	{
+	        		jwtString = auth[1];
+	        	}
+	        }
+	        else if(headers.containsKey("cookie"))
+	        {
+	        	Map<String, List<String>> cookies = this.parseCookie(headers.get("cookie"));
+	        	jwtString = this.getLastInList(cookies.get(Reference.MOD_ID + "-jwt"));
+	        }
+	        
+	        DecodedJWT jwt = (jwtString != null && !jwtString.isEmpty())? this.verify(session, jwtString): null;
+	        if(jwt != null) //authenticated and authorized connections
+	        {
+	        	if(this.authorize(jwt, session))
+	        	{
+	        		UUID player = this.getPlayerIdByJWT(jwt);
+	        		
+		        	if(session.getUri().matches("/{0,1}") || session.getUri().matches("/home/{0,1}"))
+		        	{
+		        		Document home = this.www.getHomePage();
+		        		home.getElementById("greet").appendText(this.getPlayerNameByJWT(jwt));
+		        		response = newFixedLengthResponse(home.outerHtml());
+		        		response.setStatus(Status.OK);
+		        	}
+		        	else if(session.getUri().matches("/auth/logout/{0,1}"))
+		        	{
+		        		response =  this.getDefaultRedirect(Errno.NOTHING);
+		    			response.addHeader("Set-Cookie", Reference.MOD_ID + "-jwt=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Domain=" + this.getHostname() + "; Path=/; HttpOnly");
+		        	}
+	        	}
+	        	else
+	        	{
+	        		response =  this.getDefaultRedirect(Errno.BANNEDPLAYER);
+	    			response.addHeader("Set-Cookie", Reference.MOD_ID + "-jwt=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Domain=" + this.getHostname() + "; Path=/; HttpOnly");
+	        	}
+	        }
+	        else	//unauthenticated connections
+	        {
+	        	if(session.getUri().matches("/{0,1}")) //show entrance for user log-in
+	        	{
+	        		String feedback = "";
+	        		if(session.getParameters().containsKey("fyi"))
 	        		{
-						if(this.authenticate(uid, this.getLastInList(params.get("password"))))
+		        		List<String> fyi = session.getParameters().get("fyi");
+		        		if(fyi != null)
+	        			{
+		        			switch(Errno.getErrno(Integer.decode(fyi.get(fyi.size() - 1))))
+		        			{
+		        				case BANNEDPLAYER:
+		        					feedback = "You are BANned";
+		        					break;
+		        				case ERRLOGIN:
+		        					feedback = "Oops! Something is wrong.";
+		        				case NOTHING:
+		        				default:
+		        			}
+	        			}
+	        		}
+	        		
+	        		Set<String> classFeedback = new HashSet<String>();
+	        		classFeedback.add("error");
+	        		
+	        		Document entrance = this.getPage(Page.ENTRANCE);
+	        		entrance.select("#feedback").get(0).appendChild(new Element("div").classNames(classFeedback).appendText(feedback));
+		        	response = newFixedLengthResponse(entrance.outerHtml());
+		        	response.addHeader("WWW-Authenticate", "realm=\"" + Reference.MOD_NAME +"\"");
+		            response.setStatus(Status.UNAUTHORIZED);
+	            }
+	        	else if(session.getUri().matches("/test/{0,1}"))
+	        	{
+	        		response = newFixedLengthResponse("Hello");
+	        		response.setStatus(Status.OK);
+	        	}
+	        	else if(session.getUri().matches("/auth/login/{0,1}") && method == Method.POST)
+	        	{
+	        		try {
+						session.parseBody(new HashMap<String, String>());
+					} catch (Exception e) {
+						logger.warn("Error occurs when fetching request parameters. ", e);
+					}
+	        		
+	        		Map<String, List<String>>params = session.getParameters();
+	        		if(params.get("username") != null && params.get("password") != null)
+	        		{
+		        		UUID uid = Server.getPlayerId(this.getLastInList(params.get("username")));
+		        		if(uid != null)
 		        		{
-		        			response = this.createToken(uid, this.mapUID2Digest.get(uid), session.getRemoteIpAddress());
+							if(this.authenticate(uid, this.getLastInList(params.get("password"))))
+			        		{
+			        			response = this.createToken(uid, this.mapUID2Digest.get(uid), session.getRemoteIpAddress());
+			        		}
 		        		}
 	        		}
-        		}
-        		if(response == null) response =  this.getDefaultRedirect(Errno.ERRLOGIN);
-        	}
-        }
-
-        if(response == null) response =  this.getDefaultRedirect(Errno.NOTHING);
+	        		if(response == null) response =  this.getDefaultRedirect(Errno.ERRLOGIN);
+	        	}
+	        }
+	
+	        if(response == null) response =  this.getDefaultRedirect(Errno.NOTHING);
+		}	
         
         return response;
     }
 	
 	private String getPlayerNameByJWT(DecodedJWT jwt)
+	{
+		UUID uid = this.getPlayerIdByJWT(jwt);
+		
+		if(uid != null)
+		{
+			return Server.getPlayerName(uid);
+		}
+		
+		return "";
+	}
+	
+	public UUID getPlayerIdByJWT(DecodedJWT jwt)
 	{
 		UUID uid = null;
 		try {
@@ -400,12 +447,7 @@ public class MoHTTPD extends NanoHTTPD
 			logger.warn("Fail to decode the user id from JWT. ");
 		}
 		
-		if(uid != null)
-		{
-			return Server.getPlayerName(uid);
-		}
-		
-		return "";
+		return uid;
 	}
 	
 	public Response getDefaultRedirect(Errno msg)
@@ -419,7 +461,7 @@ public class MoHTTPD extends NanoHTTPD
 
 		Response response = newFixedLengthResponse("");
 		response.addHeader("Location", this.www.baseURI.toString() + err);
-		response.setStatus(Status.TEMPORARY_REDIRECT);
+		response.setStatus(Status.REDIRECT_SEE_OTHER);
 		response.setRequestMethod(Method.GET);
 		return response;
 	}
@@ -804,15 +846,6 @@ public class MoHTTPD extends NanoHTTPD
 		}
 	}
 	
-	private enum Request
-	{
-		GET_MAILBOX,
-		GET_MAIL,
-		GET_INFO,
-		GET_TOKEN,
-		POST_MAIL
-	}
-	
 	private enum Page
 	{
 		ENTRANCE,
@@ -822,7 +855,8 @@ public class MoHTTPD extends NanoHTTPD
 	private enum Errno
 	{
 		NOTHING(0),
-		ERRLOGIN(1);
+		ERRLOGIN(1),
+		BANNEDPLAYER(2);
 		
 		private int errno;
 		
@@ -840,6 +874,8 @@ public class MoHTTPD extends NanoHTTPD
 		{
 			switch(i)
 			{
+				case 2:
+					return Errno.BANNEDPLAYER;
 				case 1:
 					return Errno.ERRLOGIN;
 				case 0:

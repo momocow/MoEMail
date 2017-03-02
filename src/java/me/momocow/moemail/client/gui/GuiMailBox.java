@@ -24,6 +24,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 	
 	private final static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
 	private final static ResourceLocation ACCOUNTBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/personalInfoButton.png");
+	private final static ResourceLocation NEWMAILBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/newMail.png");
 	private final static ResourceLocation SCROLLBAR = new ResourceLocation(Reference.MOD_ID, "textures/gui/scrollbar.png");
 	private final static String NAME = "GuiMailBox";
 	
@@ -38,6 +39,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 	//Gui
 	private MoVanillaScrollBar  scrollbar;
 	private MoIconButton accountButton;
+	private MoIconButton newMailButton;
 	private List<GuiMailButton> mailButtonList = new ArrayList<GuiMailButton>();
 	
 	public GuiMailBox()
@@ -81,6 +83,13 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo"));
 			this.buttonList.add(this.accountButton);
 		}
+		
+		this.newMailButton = new MoIconButton(2, this.getGlobalX(195), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, NEWMAILBUTTON);
+		this.newMailButton.visible = true;
+		this.newMailButton.enabled = true;
+		this.clearTooltip(this.newMailButton.id);
+		this.addTooltip(newMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo"));
+		this.buttonList.add(this.newMailButton);
 	}
 	
 	@Override
@@ -164,6 +173,10 @@ public class GuiMailBox extends MoCenteredGuiScreen
 					if(button.id == 1)
 					{
 						this.changeGui(new GuiMailBoxAccount(this));
+					}
+					else if(button.id == 2)
+					{
+						this.changeGui(new GuiNewMail(this));
 					}
 				}
 			}
