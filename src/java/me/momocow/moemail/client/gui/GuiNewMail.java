@@ -1,8 +1,6 @@
 package me.momocow.moemail.client.gui;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.lwjgl.input.Keyboard;
 
@@ -11,22 +9,25 @@ import me.momocow.mobasic.client.gui.MoGuiScreen;
 import me.momocow.mobasic.client.gui.widget.MoIconButton;
 import me.momocow.mobasic.client.gui.widget.MoTextField;
 import me.momocow.mobasic.client.gui.widget.MoVanillaScrollBar;
-import me.momocow.moemail.client.gui.MoTextArea.CursorPos;
+import me.momocow.moemail.client.gui.MoTextArea.UpdatableGuiParent;
 import me.momocow.moemail.reference.Reference;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.util.ChatAllowedCharacters;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 
-public class GuiNewMail extends MoCenteredGuiScreen
+public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParent<Integer>
 {
 	private static final int MAX_LINE = 12;
 	private static final int MAX_TITLE_LEN = 30;
+	private static final int MAX_CONTENT_LEN = 500;
 	private final static int ENABLED_TEXT_COLOR = 5987163;
 	
 	private final static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
 	private final static ResourceLocation HOMEBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/homebutton.png");
 	private final static ResourceLocation SCROLLBAR = new ResourceLocation(Reference.MOD_ID, "textures/gui/scrollbar.png");
 	private final static ResourceLocation TEXTFIELD = new ResourceLocation(Reference.MOD_ID, "textures/gui/textfield.png");
+	private final static ResourceLocation SENDMAIL = new ResourceLocation(Reference.MOD_ID, "textures/gui/sendMail.png");
 	private final static String NAME = "GuiNewMail";
 	
 	private GuiMailBox parent;
@@ -36,16 +37,16 @@ public class GuiNewMail extends MoCenteredGuiScreen
 	private String bufMailReceiver = "";
 	private String bufMailTitle = "";
 	private int stageCount = 1;
-	private boolean isTextAreaFocused = false;
-	private List<String> bufMailContent = new ArrayList<String>();
+	private boolean forcedUpdate = true;
+	private int contentLen = 0;
 	
 	//Gui
 	private MoVanillaScrollBar  scrollbar;
 	private MoIconButton homeButton;
+	private MoIconButton sendMailButton;
 	private MoTextField receiver;
 	private MoTextField mailTitle;
 	private MoTextArea mailContent;
-	private CursorPos textareaCursor = null;
 
 	//text
 	private String textGuiTitle;
@@ -70,20 +71,19 @@ public class GuiNewMail extends MoCenteredGuiScreen
 		//MUST call super.initGui to draw the centeredScreen at the correct position
 		super.initGui();
 		Keyboard.enableRepeatEvents(true);
+		this.forceUpdate();
 		
-		this.mailContent = new MoTextArea(this.getGlobalX(19), this.getGlobalY(43), 198, 9, MAX_LINE, this.fontRendererObj);
-		this.mailContent.setRawLines(this.bufMailContent);
-		if(this.textareaCursor != null) this.mailContent.setCursorPos(this.textareaCursor);
-		this.mailContent.setFocused(this.isTextAreaFocused);
+		this.mailContent = MoTextArea.load(new MoTextArea(this.getGlobalX(19), this.getGlobalY(43), 198, 9, MAX_LINE, fontRendererObj), this.mailContent);
+		this.mailContent.setParent(this);
+		this.mailContent.setDisplayStartLine(this.pageCursor);
 		
 		this.stageCount = this.mailContent.getLineCount() - MAX_LINE + 1;
-		if(this.stageCount < 1) this.stageCount = 1;
 		this.scrollbar = new MoVanillaScrollBar(this.getGlobalX(224), this.getGlobalY(42), this.zLevel, this.getGlobalY(152), 12, 15, this.stageCount, SCROLLBAR);
 		this.scrollbar.setStage(this.pageCursor);
 		
 		this.homeButton = new MoIconButton(0, this.getGlobalX(220), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, HOMEBUTTON);
 		this.clearTooltip(this.homeButton.id);
-		this.addTooltip(homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home"));
+		this.addTooltip(this.homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home")+ TextFormatting.YELLOW + "(M)");
 		
 		this.receiver = new MoTextField(1, this.fontRendererObj, this.col(7), this.row(2), 1, 11, 1, 1, 58, 8, 60, 20, 60, 10, TEXTFIELD);
 		this.receiver.setVisible(true);
@@ -100,12 +100,34 @@ public class GuiNewMail extends MoCenteredGuiScreen
 		this.mailTitle.setTextColor(ENABLED_TEXT_COLOR);
 		this.mailTitle.setText(this.bufMailTitle);
 		this.mailTitle.setMaxStringLength(MAX_TITLE_LEN);
+		
+		this.sendMailButton = new MoIconButton(1, this.getGlobalX(195), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, SENDMAIL);
+		this.clearTooltip(this.sendMailButton.id);
+		this.addTooltip(this.sendMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".send"));
 	}
 	
 	@Override
 	public void updateScreen() 
 	{
-		this.mailContent.updateTextArea(this.pageCursor = this.scrollbar.getStage());
+		if(Math.max(this.mailContent.getLineCount() - MAX_LINE + 1, 1) != this.scrollbar.getStageNum())
+		{
+			this.initGui();
+		}
+
+		if(this.forcedUpdate || this.pageCursor != this.scrollbar.getStage())
+		{
+			this.pageCursor = this.scrollbar.getStage();
+			this.mailContent.setDisplayStartLine(this.pageCursor);
+			this.forcedUpdate = false;
+		}
+		
+		this.mailContent.updateTextArea();
+		this.contentLen = this.mailContent.getContentString().length();
+	}
+	
+	public void forceUpdate()
+	{
+		this.forcedUpdate = true;
 	}
 	
 	@Override
@@ -116,25 +138,33 @@ public class GuiNewMail extends MoCenteredGuiScreen
 		this.scrollbar.drawScrollBar();
 		
 		//gui title
-		this.drawCenteredString(fontRendererObj, this.textGuiTitle, this.getCenterX(), this.row(1), fontRendererObj.getColorCode('1'));
+		this.drawCenteredString(this.fontRendererObj, this.textGuiTitle, this.getCenterX(), this.row(1), this.fontRendererObj.getColorCode('1'));
     	
     	//receiver
-    	fontRendererObj.drawString(this.textReceiver + ": ", this.col(3), this.row(2), fontRendererObj.getColorCode('0'));
+		this.fontRendererObj.drawString(this.textReceiver + ": ", this.col(3), this.row(2), this.fontRendererObj.getColorCode('0'));
     	this.receiver.drawTextBox();
     	
     	//mail title
-    	fontRendererObj.drawString(this.textMailTitle + ": ", this.col(3), this.row(3) + 2, fontRendererObj.getColorCode('0'));
+    	this.fontRendererObj.drawString(this.textMailTitle + ": ", this.col(3), this.row(3) + 2, this.fontRendererObj.getColorCode('0'));
     	this.mailTitle.drawTextBox();
     	
     	//mail content
     	this.mailContent.drawTextArea();
+    	int remain = MAX_CONTENT_LEN - this.contentLen;
+    	String textRemainWord = I18n.format(this.getUnlocalizedName() + ".remainWordCount", remain);
+    	this.drawCenteredString(this.fontRendererObj, textRemainWord, this.getCenterX(), this.getGlobalY(151), this.fontRendererObj.getColorCode(remain==0? 'c': '8'), false);
     	
     	this.homeButton.drawButton(mc, mouseX, mouseY);
+    	this.sendMailButton.drawButton(mc, mouseX, mouseY);
     	
     	//hovering text
     	if(this.homeButton.isHovered(mouseX, mouseY))
     	{
     		this.drawTooltip(this.homeButton.id, mouseX, mouseY);
+    	}
+    	else if(this.sendMailButton.isHovered(mouseX, mouseY))
+    	{
+    		this.drawTooltip(this.sendMailButton.id, mouseX, mouseY);
     	}
 	}
 	
@@ -153,25 +183,14 @@ public class GuiNewMail extends MoCenteredGuiScreen
 			return;
 		}
 		
-		if(this.mailContent.keyTyped(typedChar, keyCode))
+		if(this.contentLen < MAX_CONTENT_LEN || (!ChatAllowedCharacters.isAllowedCharacter(typedChar) && keyCode != 28 && keyCode != 156))
 		{
-			this.bufMailContent = this.mailContent.getRawLines();
-			this.scrollbar.setStage(this.pageCursor = this.mailContent.getCurrentLiineStart());
-			
-			int c = this.mailContent.getLineCount() - MAX_LINE + 1;
-			if(c < 1) c = 1;
-			if(c != this.stageCount)
-			{
-				this.isTextAreaFocused = this.mailContent.isFocused();
-				this.textareaCursor = this.mailContent.getCursorPos();
-				this.initGui();
-			}
-			return;
+			if(this.mailContent.keyTyped(typedChar, keyCode)) return;
 		}
 
 		if(keyCode == 50)	//m
 		{
-			this.changeGui(null);;
+			this.displayParentGui();
 		}
 		else if(keyCode == 200)	//key up
     	{
@@ -200,6 +219,12 @@ public class GuiNewMail extends MoCenteredGuiScreen
 			{
 				this.homeButton.mouseClick(mc, mouseX, mouseY, mouseButton);
 				this.displayParentGui();
+				return;
+			}
+			else if(this.sendMailButton.mousePressed(mc, mouseX, mouseY))
+			{
+				this.sendMailButton.mouseClick(mc, mouseX, mouseY, mouseButton);
+				this.changeGui(new GuiSendMailConfirm(this));
 				return;
 			}
 			
@@ -246,7 +271,28 @@ public class GuiNewMail extends MoCenteredGuiScreen
 	}
 	
 	@Override
-	public void onGuiClosed() {
+	public void onGuiClosed() 
+	{
 		Keyboard.enableRepeatEvents(false);
+	}
+
+	/**
+	 * info[0] contains the line id of the content that the text area wants to display
+	 */
+	@Override
+	public void onUpdate(Integer... info) 
+	{
+		if(info.length == 1)
+		{
+			if(info[0] >= 0 && info[0] < this.scrollbar.getStageNum())
+			{
+				this.scrollbar.setStage(info[0]);
+			}
+			else if(info[0] >= this.scrollbar.getStageNum())
+			{
+				this.pageCursor++;
+				this.initGui();
+			}
+		}
 	}
 }

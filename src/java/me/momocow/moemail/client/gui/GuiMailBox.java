@@ -80,7 +80,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			this.accountButton.visible = true;
 			this.accountButton.enabled = true;
 			this.clearTooltip(this.accountButton.id);
-			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo"));
+			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo" + TextFormatting.YELLOW + "(I)"));
 			this.buttonList.add(this.accountButton);
 		}
 		
@@ -88,7 +88,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		this.newMailButton.visible = true;
 		this.newMailButton.enabled = true;
 		this.clearTooltip(this.newMailButton.id);
-		this.addTooltip(newMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo"));
+		this.addTooltip(newMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".newMail") + TextFormatting.YELLOW + "(N)");
 		this.buttonList.add(this.newMailButton);
 	}
 	
@@ -139,6 +139,10 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		{
 			this.drawTooltip(this.accountButton.id, mouseX, mouseY);
 		}
+		else if(this.newMailButton != null && this.newMailButton.isHovered(mouseX, mouseY))
+		{
+			this.drawTooltip(this.newMailButton.id, mouseX, mouseY);
+		}
 	}
 	
 	@Override
@@ -147,7 +151,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		
 		if(keyCode == 50)	//m
 		{
-			this.changeGui(null);;
+			this.changeGui(null);
 		}
 		else if(keyCode == 200)	//key up
     	{
@@ -156,6 +160,10 @@ public class GuiMailBox extends MoCenteredGuiScreen
     	else if(keyCode == 208)	//key down
     	{
     		this.scrollbar.moveNextStage();
+    	}
+    	else if(keyCode == 49)	//n
+    	{
+    		this.changeGui(new GuiNewMail(this));
     	}
 	}
 	
