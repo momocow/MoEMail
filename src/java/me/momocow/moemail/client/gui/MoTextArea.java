@@ -20,6 +20,7 @@ import net.minecraft.util.math.MathHelper;
 public class  MoTextArea
 {	
 	protected int textColor = 5987163;
+	protected int margin = 9;
 	protected int x;
 	protected int y;
 	protected int width;
@@ -65,7 +66,7 @@ public class  MoTextArea
 		this.lineHeight = lineHeight;
 		this.maxDisplayLineCount = maxLineCount;
 		this.fontRendererObj = fontRendererObj;
-		this.maxTextboxLen = this.width - 20;
+		this.maxTextboxLen = this.width - 2 * this.margin;
 		this.contentLineValidator =  Predicates.<Integer>in(this.content.keySet());
 	}
 	
@@ -184,6 +185,8 @@ public class  MoTextArea
 			{
 				this.forceDisplayCursor();
 			}
+			
+			return true;
 		}
 		
 		return false;
@@ -205,7 +208,7 @@ public class  MoTextArea
 			this.markDirtyDisplay();
 			
 			int clickedLine = this.displayStartLine + this.getClickedLine(mouseY);
-			int clickedPos = this.getClickedPos(clickedLine, mouseX);
+			int clickedPos = this.getClickedPos(clickedLine, mouseX); //System.out.println(clickedLine + " " +clickedPos);
 			if(this.hasContentLine(clickedLine) && clickedPos >= 0)
 			{
 				this.setCursorAt(clickedLine, clickedPos);
@@ -278,14 +281,14 @@ public class  MoTextArea
 			{
 				String line = new String(this.content.get(this.displayStartLine + lineId)).replaceAll("\n", "\u21b5");
 				this.fontRendererObj.drawString(String.valueOf(this.displayStartLine + lineId + 1), this.x + 1, this.getLineY(lineId), this.fontRendererObj.getColorCode('7'));
-				this.fontRendererObj.drawString(line, this.x + 9, this.getLineY(lineId), this.fontRendererObj.getColorCode('0'));
+				this.fontRendererObj.drawString(line, this.x + this.margin, this.getLineY(lineId), this.fontRendererObj.getColorCode('0'));
 			}
 			
 			//draw cursor
 			if(this.isFocused && this.isCursorDisplay())
 			{
 				int textWidth = this.content.get(this.getCursorLine()) != null? this.fontRendererObj.getStringWidth(this.content.get(this.cursorManager.cursor.getLine()).substring(0, this.cursorManager.cursor.getPos())): 0;
-				int displayCursorX = this.x + 9 + textWidth;
+				int displayCursorX = this.x + this.margin + textWidth;
 				int displayCursorY = this.getLineY(this.getCursorLine() - this.displayStartLine);
 				this.drawCursorVertical(displayCursorX, displayCursorY, displayCursorX + 1, displayCursorY + this.lineHeight - 1);
 			}
@@ -314,15 +317,39 @@ public class  MoTextArea
 	
 	public String getContentString()
 	{
-		return this.getContentString(0);
+		return this.getContentString(0, true);
 	}
 	
-	public String getContentString(int start)
+	public String getContentString(int end)
+	{
+		return this.getContentString(end, false);
+	}
+	
+	/**
+	 * Get the content exclusively before the Index if isContentAfterIndex is false; otherwise the content inclusively after the index.
+	 * <p>e.g. if the content map looks like {0:"Hello", 1:"World", 2:"!!!"},<br>
+	 *  this.getContentString(1, true) //"World!!!"<br>
+	 *  this.getContentString(1, false) //"Hello"</p>
+	 * @param index
+	 * @param isContentAfterIndex
+	 * @return
+	 */
+	public String getContentString(int index, boolean isContentAfterIndex)
 	{
 		String c = "";
-		for(String line: Lists.newArrayList(this.content.values()).subList(start, this.content.size()))
+		if(isContentAfterIndex)
 		{
-			c += line;
+			for(String line: Lists.newArrayList(this.content.values()).subList(index, this.content.size()))
+			{
+				c += line;
+			}
+		}
+		else
+		{
+			for(String line: Lists.newArrayList(this.content.values()).subList(0, index))
+			{
+				c += line;
+			}
 		}
 		return c;
 	}
@@ -429,14 +456,14 @@ public class  MoTextArea
 	
 	private int getClickedLine(int mouseY)
 	{
-		return mouseY / this.lineHeight;
+		return (mouseY - this.y) / this.lineHeight;
 	}
 	
 	private int getClickedPos(int line, int mouseX)
 	{
 		if(this.hasContentLine(line))
 		{
-			return this.fontRendererObj.trimStringToWidth(this.content.get(line), mouseX - this.x - 9).length();
+			return this.fontRendererObj.trimStringToWidth(this.content.get(line), mouseX - this.x - this.margin).length();
 		}
 		
 		return -1;
@@ -468,14 +495,15 @@ public class  MoTextArea
             endY = j;
         }
 
-        if (endX > this.x + this.maxTextboxLen)
+        int bound = this.x + this.margin + this.maxTextboxLen + 2;
+        if (endX > bound)
         {
-            endX = this.x + this.maxTextboxLen;
+            endX = bound;
         }
 
-        if (startX > this.x + this.maxTextboxLen)
+        if (startX > bound)
         {
-            startX = this.x + this.maxTextboxLen;
+            startX = bound;
         }
 
         Tessellator tessellator = Tessellator.getInstance();
@@ -506,7 +534,14 @@ public class  MoTextArea
 	
 	public void forceDisplayCursor()
 	{
-		this.parent.onUpdate(this.getCursorLine());
+		if(this.getCursorLine() < this.displayStartLine)
+		{
+			this.parent.onUpdate(this.getCursorLine());
+		}
+		else if(this.getCursorLine() >= this.displayStartLine + this.maxDisplayLineCount)
+		{
+			this.parent.onUpdate(this.getCursorLine() - this.maxDisplayLineCount + 1);
+		}
 	}
 	
 	private class CursorManager
@@ -571,22 +606,15 @@ public class  MoTextArea
 			
 			public void setCursor(int lineIndex, int posInLine)
 			{
-				if(this.textarea.hasContentLine(lineIndex) && posInLine <= this.textarea.content.get(lineIndex).length())
+				String prev = "";
+				if(lineIndex > 0)
 				{
-					String prev = "";
-					if(lineIndex > 0)
-					{
-						prev += this.textarea.getContentString(lineIndex - 1);
-					}
-					
-					if(this.textarea.content.get(lineIndex) != null)
-					{
-						prev += this.textarea.content.get(lineIndex).substring(0, posInLine);
-					}
-					this.index = prev.length();
-					
-					this.computeCursorByIndex();					
+					prev += this.textarea.getContentString(lineIndex);
 				}
+				
+				this.index = prev.length() + posInLine; System.out.println("Result index => " +this.index);
+				
+				this.computeCursorByIndex();					
 			}
 			
 			/**
@@ -616,11 +644,6 @@ public class  MoTextArea
 				
 				this.line = validatedLine;
 				this.pos = validatedIndex;
-			}
-			
-			public boolean isOutOfDisplayRange(int lineIndex)
-			{
-				return lineIndex < this.textarea.displayStartLine || lineIndex > this.textarea.displayStartLine + this.textarea.maxDisplayLineCount - 1;
 			}
 			
 			public int getLine()

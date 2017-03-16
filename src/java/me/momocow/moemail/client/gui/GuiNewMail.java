@@ -277,7 +277,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	}
 
 	/**
-	 * info[0] contains the line id of the content that the text area wants to display
+	 * info[0] is the new start line ID
 	 */
 	@Override
 	public void onUpdate(Integer... info) 
