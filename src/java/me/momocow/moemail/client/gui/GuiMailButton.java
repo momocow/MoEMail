@@ -36,15 +36,20 @@ public class GuiMailButton extends MoButton
 	public boolean mouseClick(Minecraft mc, int mouseX, int mouseY, int mouseButton) {
 		if(super.mouseClick(mc, mouseX, mouseY, mouseButton))
 		{
-			//show mail
-			if(mc.currentScreen instanceof GuiMailBox && this.hasMail())
-			{
-				this.head.setRead();
-				this.setUnread(this.head.isUnread());
-				mc.displayGuiScreen(new GuiMail((GuiMailBox) mc.currentScreen, this.head));
-			}
+			this.displayMail(mc);
 		}
 		return false;
+	}
+	
+	public void displayMail(Minecraft mc)
+	{
+		//show mail
+		if(mc.currentScreen instanceof GuiMailBox && this.hasMail())
+		{
+			this.head.setRead();
+			this.setUnread(this.head.isUnread());
+			mc.displayGuiScreen(new GuiMail((GuiMailBox) mc.currentScreen, this.head));
+		}
 	}
 	
 	public UUID getMailId()

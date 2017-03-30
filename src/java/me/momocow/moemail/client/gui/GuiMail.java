@@ -15,6 +15,7 @@ import me.momocow.moemail.init.ModChannels;
 import me.momocow.moemail.network.C2SFetchMailContentPacket;
 import me.momocow.moemail.reference.Reference;
 import me.momocow.moemail.server.MailPool.Mail.Header;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
@@ -74,7 +75,7 @@ public class GuiMail extends MoCenteredGuiScreen
 		this.homeButton = new MoIconButton(0, this.getGlobalX(220), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, HOMEBUTTON);
 		this.deleteButton = new MoIconButton(1, this.getGlobalX(195), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, DELETEBUTTON);
 		this.clearTooltip(this.homeButton.id);
-		this.addTooltip(homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home"));
+		this.addTooltip(homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home") + TextFormatting.YELLOW + "(Ctrl+H)");
 	}
 	
 	@Override
@@ -128,9 +129,9 @@ public class GuiMail extends MoCenteredGuiScreen
 	{
 		super.keyTyped(typedChar, keyCode);
 		
-		if(keyCode == 50)	//m
+		if(keyCode == 35 && GuiScreen.isCtrlKeyDown())	//h
 		{
-			this.changeGui(null);;
+			this.displayParentGui();
 		}
 		else if(keyCode == 200)	//key up
     	{

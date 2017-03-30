@@ -5,12 +5,14 @@ import me.momocow.moemail.network.C2SFetchMailBoxURLPacket;
 import me.momocow.moemail.network.C2SFetchMailContentPacket;
 import me.momocow.moemail.network.C2SFetchMailHeaderPacket;
 import me.momocow.moemail.network.C2SMailDeletePacket;
+import me.momocow.moemail.network.C2SMailInsertPacket;
 import me.momocow.moemail.network.C2SUpdatePasswdPacket;
 import me.momocow.moemail.network.S2CAccountResultPacket;
 import me.momocow.moemail.network.S2CMailBoxURLPacket;
 import me.momocow.moemail.network.S2CMailContentPacket;
 import me.momocow.moemail.network.S2CMailDeleteResponsePacket;
 import me.momocow.moemail.network.S2CMailHeaderPacket;
+import me.momocow.moemail.network.S2CMailInsertResponsePacket;
 import me.momocow.moemail.network.S2CPasswdResultPacket;
 import me.momocow.moemail.reference.ID;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -35,6 +37,9 @@ public class ModChannels
 		
 		mailSyncChannel.registerMessage(C2SMailDeletePacket.Handler.class, C2SMailDeletePacket.class, ID.Packet.MailSync.C2SMailDeletePacket, Side.SERVER);
 		mailSyncChannel.registerMessage(S2CMailDeleteResponsePacket.Handler.class, S2CMailDeleteResponsePacket.class, ID.Packet.MailSync.S2CMailDeleteResponsePacket, Side.CLIENT);
+		
+		mailSyncChannel.registerMessage(C2SMailInsertPacket.Handler.class, C2SMailInsertPacket.class, ID.Packet.MailSync.C2SMailInsertPacket, Side.SERVER);
+		mailSyncChannel.registerMessage(S2CMailInsertResponsePacket.Handler.class, S2CMailInsertResponsePacket.class, ID.Packet.MailSync.S2CMailInsertResponsePacket, Side.CLIENT);
 		
 		httpdChannel = NetworkRegistry.INSTANCE.newSimpleChannel(ID.Channel.httpd);
 		

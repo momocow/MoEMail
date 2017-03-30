@@ -7,10 +7,12 @@ import org.lwjgl.input.Keyboard;
 import me.momocow.mobasic.client.gui.MoCenteredGuiScreen;
 import me.momocow.mobasic.client.gui.MoGuiScreen;
 import me.momocow.mobasic.client.gui.widget.MoIconButton;
+import me.momocow.mobasic.client.gui.widget.MoTextArea;
+import me.momocow.mobasic.client.gui.widget.MoTextArea.UpdatableGuiParent;
 import me.momocow.mobasic.client.gui.widget.MoTextField;
 import me.momocow.mobasic.client.gui.widget.MoVanillaScrollBar;
-import me.momocow.moemail.client.gui.MoTextArea.UpdatableGuiParent;
 import me.momocow.moemail.reference.Reference;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ChatAllowedCharacters;
 import net.minecraft.util.ResourceLocation;
@@ -83,7 +85,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		
 		this.homeButton = new MoIconButton(0, this.getGlobalX(220), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, HOMEBUTTON);
 		this.clearTooltip(this.homeButton.id);
-		this.addTooltip(this.homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home")+ TextFormatting.YELLOW + "(M)");
+		this.addTooltip(this.homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home") + TextFormatting.YELLOW + "(Ctrl+H)");
 		
 		this.receiver = new MoTextField(1, this.fontRendererObj, this.col(7), this.row(2), 1, 11, 1, 1, 58, 8, 60, 20, 60, 10, TEXTFIELD);
 		this.receiver.setVisible(true);
@@ -93,7 +95,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		this.receiver.setText(this.bufMailReceiver);
 		this.receiver.setMaxStringLength(MAX_TITLE_LEN);
 		
-		this.mailTitle = new MoTextField(2, this.fontRendererObj, this.col(7), this.row(3) + 2, 1, 11, 1, 1, 58, 8, 60, 20, 100, 10, TEXTFIELD);
+		this.mailTitle = new MoTextField(2, this.fontRendererObj, this.col(7), this.row(3) + 1, 1, 11, 1, 1, 58, 8, 60, 20, 100, 10, TEXTFIELD);
 		this.mailTitle.setVisible(true);
 		this.mailTitle.setEnabled(true);
 		this.mailTitle.setEnableBackgroundDrawing(true);
@@ -103,7 +105,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		
 		this.sendMailButton = new MoIconButton(1, this.getGlobalX(195), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, SENDMAIL);
 		this.clearTooltip(this.sendMailButton.id);
-		this.addTooltip(this.sendMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".send"));
+		this.addTooltip(this.sendMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".send")+ TextFormatting.YELLOW + "(Ctrl+Shift+S)");
 	}
 	
 	@Override
@@ -145,7 +147,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
     	this.receiver.drawTextBox();
     	
     	//mail title
-    	this.fontRendererObj.drawString(this.textMailTitle + ": ", this.col(3), this.row(3) + 2, this.fontRendererObj.getColorCode('0'));
+    	this.fontRendererObj.drawString(this.textMailTitle + ": ", this.col(3), this.row(3) + 1, this.fontRendererObj.getColorCode('0'));
     	this.mailTitle.drawTextBox();
     	
     	//mail content
@@ -188,9 +190,13 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 			if(this.mailContent.keyTyped(typedChar, keyCode)) return;
 		}
 
-		if(keyCode == 50)	//m
+		if(keyCode == 35 && GuiScreen.isCtrlKeyDown())	//h
 		{
 			this.displayParentGui();
+		}
+		else if(keyCode == 31 && GuiScreen.isCtrlKeyDown() && GuiScreen.isShiftKeyDown())
+		{
+			this.changeGui(new GuiSendMailConfirm(this));
 		}
 		else if(keyCode == 200)	//key up
     	{
@@ -240,13 +246,16 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	}
 	
 	@Override
-	protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+	protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) 
+	{
 		super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
 		
 		if(this.scrollbar.isDragged())
 		{
 			this.scrollbar.mouseClickMove(mouseX, mouseY);
 		}
+		
+		this.mailContent.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
 	}
 	
 	@Override
@@ -274,6 +283,23 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	public void onGuiClosed() 
 	{
 		Keyboard.enableRepeatEvents(false);
+	}
+	
+	public String getReceiver()
+	{
+		String r = this.receiver.getText();
+		return (r ==null)? "": r;
+	}
+	
+	public String getTitle()
+	{
+		String t = this.mailTitle.getText();
+		return (t == null)? "": t;
+	}
+	
+	public String getContent()
+	{
+		return this.mailContent.getContentString();
 	}
 
 	/**

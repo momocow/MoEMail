@@ -1,10 +1,15 @@
 package me.momocow.moemail.client.gui;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import me.momocow.mobasic.client.gui.MoCenteredGuiScreen;
 import me.momocow.mobasic.client.gui.MoGuiScreen;
 import me.momocow.mobasic.client.gui.widget.MoIconButton;
+import me.momocow.moemail.init.ModChannels;
+import me.momocow.moemail.network.C2SMailInsertPacket;
+import me.momocow.moemail.network.S2CMailInsertResponsePacket.ResultMailInsert;
 import me.momocow.moemail.reference.Reference;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.resources.I18n;
@@ -21,6 +26,9 @@ public class GuiSendMailConfirm extends MoCenteredGuiScreen
 	
 	//text
 	private String textTitle;
+	private List<String> textWarnings = new ArrayList<String>();
+	private String textReceiverNotFound;
+	private String textUnknownError;
 	
 	//gui
 	private MoIconButton okButton;
@@ -34,6 +42,8 @@ public class GuiSendMailConfirm extends MoCenteredGuiScreen
 		this.parent = p;
 		
 		this.textTitle =  I18n.format(this.getUnlocalizedName() + ".title");
+		this.textReceiverNotFound = I18n.format(this.getUnlocalizedName() + ".receiverNotFound");
+		this.textUnknownError = I18n.format(this.getUnlocalizedName() + ".unknownError");
 	}
 	
 	@Override
@@ -56,6 +66,13 @@ public class GuiSendMailConfirm extends MoCenteredGuiScreen
 		
 		//title
 		this.drawCenteredString(this.fontRendererObj, this.textTitle, this.getCenterX(), this.row(1), fontRendererObj.getColorCode('1'));
+		
+		//warn
+		int index = 0;
+		for(String warn: this.textWarnings)
+		{
+			this.drawCenteredString(this.fontRendererObj, warn, this.getCenterX(), this.row(7 + index), this.fontRendererObj.getColorCode('c'), false);
+		}
 		
 		for(GuiButton button: this.buttonList)
 		{
@@ -86,7 +103,10 @@ public class GuiSendMailConfirm extends MoCenteredGuiScreen
 				//ok
 				if(button.id == 0 && button.mousePressed(mc, mouseX, mouseY))
 				{
-					
+					ModChannels.mailSyncChannel.sendToServer(new C2SMailInsertPacket(this.parent.getReceiver(),
+							this.mc.thePlayer.getUniqueID(),
+							this.parent.getTitle(),
+							this.parent.getContent()));
 				}
 				//cancel
 				else if(button.id == 1 && button.mousePressed(mc, mouseX, mouseY))
@@ -97,8 +117,19 @@ public class GuiSendMailConfirm extends MoCenteredGuiScreen
 		}
 	}
 	
-	public void onMailDeleted()
+	public void onMailSent(ResultMailInsert result)
 	{
-		this.parent.displayParentGui();
+		if(result == ResultMailInsert.Success)
+		{
+			this.parent.displayParentGui();
+		}
+		else if(result == ResultMailInsert.ReceiverNotFound)
+		{
+			this.textWarnings.add(this.textReceiverNotFound);
+		}
+		else if(result == ResultMailInsert.UnknownError)
+		{
+			this.textWarnings.add(this.textUnknownError);
+		}
 	}
 }

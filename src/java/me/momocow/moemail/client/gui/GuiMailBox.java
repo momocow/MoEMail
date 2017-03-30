@@ -14,6 +14,7 @@ import me.momocow.moemail.network.C2SFetchMailHeaderPacket;
 import me.momocow.moemail.reference.Reference;
 import me.momocow.moemail.server.MailPool.Mail.Header;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
@@ -80,7 +81,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			this.accountButton.visible = true;
 			this.accountButton.enabled = true;
 			this.clearTooltip(this.accountButton.id);
-			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo" + TextFormatting.YELLOW + "(I)"));
+			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo" + TextFormatting.YELLOW + "(Ctrl+I)"));
 			this.buttonList.add(this.accountButton);
 		}
 		
@@ -88,7 +89,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		this.newMailButton.visible = true;
 		this.newMailButton.enabled = true;
 		this.clearTooltip(this.newMailButton.id);
-		this.addTooltip(newMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".newMail") + TextFormatting.YELLOW + "(N)");
+		this.addTooltip(newMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".newMail") + TextFormatting.YELLOW + "(Ctrl+N)");
 		this.buttonList.add(this.newMailButton);
 	}
 	
@@ -161,9 +162,32 @@ public class GuiMailBox extends MoCenteredGuiScreen
     	{
     		this.scrollbar.moveNextStage();
     	}
-    	else if(keyCode == 49)	//n
+    	else if(keyCode == 49 && GuiScreen.isCtrlKeyDown())	//n
     	{
     		this.changeGui(new GuiNewMail(this));
+    	}
+    	else if(keyCode >= 2 && keyCode <= 7 && GuiScreen.isCtrlKeyDown()) //1~6
+    	{
+    		this.mailButtonList.get(keyCode - 2).displayMail(mc);
+    	}
+    	else if(keyCode >= 75 && keyCode <= 81 && keyCode != 78 && GuiScreen.isCtrlKeyDown())
+    	{
+    		int i = 0;
+    		
+    		if(keyCode >= 79 && keyCode <= 81)
+    		{
+    			i = keyCode - 79;
+    		}
+    		else
+    		{
+    			i = keyCode - 72;
+    		}
+    		
+    		this.mailButtonList.get(i).displayMail(mc);
+    	}
+    	else if(this.accountButton != null && keyCode == 23 && GuiScreen.isCtrlKeyDown())
+    	{
+    		this.changeGui(new GuiMailBoxAccount(this));
     	}
 	}
 	
