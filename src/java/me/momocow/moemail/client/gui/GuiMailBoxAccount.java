@@ -19,6 +19,7 @@ import me.momocow.moemail.network.C2SFetchMailBoxURLPacket;
 import me.momocow.moemail.network.C2SUpdatePasswdPacket;
 import me.momocow.moemail.reference.Reference;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
@@ -105,7 +106,7 @@ public class GuiMailBoxAccount extends MoCenteredGuiScreen
 		this.homeButton = new MoIconButton(0, this.getGlobalX(220), this.row(2) - 5, 0, 90, 0, 0, 20, 20, 90, 90, 90, 180, HOMEBUTTON);
 		this.buttonList.add(this.homeButton);
 		this.clearTooltip(this.homeButton.id);
-		this.addTooltip(homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home"));
+		this.addTooltip(homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home") + TextFormatting.YELLOW + "(Ctrl+H)");
 		
 		this.linkButton = new GuiButton(1, this.getCenterX() - 30, this.getGlobalY(139), 60, 20, this.textWebLink);
 		this.linkButton.visible = true;
@@ -243,9 +244,9 @@ public class GuiMailBoxAccount extends MoCenteredGuiScreen
 			}
 		}
 		
-		if(keyCode == 50)	//m
+		if(keyCode == 35 && GuiScreen.isCtrlKeyDown())	//h
 		{
-			this.changeGui(null);;
+			this.parent.displayGui();
 		}
 	}
 	

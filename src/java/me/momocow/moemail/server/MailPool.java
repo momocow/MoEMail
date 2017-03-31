@@ -10,13 +10,22 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.Logger;
 
+import me.momocow.mobasic.proxy.Server;
 import me.momocow.mobasic.util.StorageFile;
 import me.momocow.moemail.MoEMail;
+import me.momocow.moemail.init.ModChannels;
 import me.momocow.moemail.init.ModConfigs;
+import me.momocow.moemail.network.S2CMailNotification;
 import me.momocow.moemail.server.MailPool.Mail.Header;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class MailPool 
 {
@@ -26,6 +35,7 @@ public class MailPool
 	private final File mailpoolStorage;
 	private final StorageFile<HashMap<UUID, Mail>> poolLog;
 	private final StorageFile<HashMap<UUID, List<UUID>>> recvLog;
+	private final StorageFile<HashMap<UUID, Integer>> unnotifiedLog;
 	
 	/**
 	 * Map[mailID]=Mail
@@ -35,6 +45,10 @@ public class MailPool
 	 * Map[recvrID]=Set[mailID]
 	 */
 	private HashMap<UUID, List<UUID>> recv = new HashMap<UUID, List<UUID>>();
+	/**
+	 * Map[recvrID]=Set[mailID]
+	 */
+	private HashMap<UUID, Integer> unnotified = new HashMap<UUID, Integer>();
 	
 	private MailPool(File logDir) throws Exception
 	{
@@ -42,8 +56,9 @@ public class MailPool
 		
 		try
 		{
-			this.poolLog = new StorageFile<HashMap<UUID, Mail>> (this.pool, new File(this.mailpoolStorage, "pool.log"), logger);
-			this.recvLog = new StorageFile<HashMap<UUID, List<UUID>>> (this.recv, new File(this.mailpoolStorage, "recv.log"), logger);
+			this.poolLog = new StorageFile<HashMap<UUID, Mail>> (this.pool, new File(this.mailpoolStorage, "pool.dat"), logger);
+			this.recvLog = new StorageFile<HashMap<UUID, List<UUID>>> (this.recv, new File(this.mailpoolStorage, "recv.dat"), logger);
+			this.unnotifiedLog = new StorageFile<HashMap<UUID, Integer>>(this.unnotified, new File(this.mailpoolStorage, "unnotified.dat"), logger);
 		}
 		catch(Exception e)
 		{
@@ -56,12 +71,14 @@ public class MailPool
 	{
 		this.pool = this.poolLog.load();
 		this.recv = this.recvLog.load();
+		this.unnotified = this.unnotifiedLog.load();
 	}
 	
 	public void save() throws Exception
 	{		
 		this.poolLog.save(this.pool);
 		this.recvLog.save(this.recv);
+		this.unnotifiedLog.save(this.unnotified);
 	}
 	
 	/**
@@ -83,9 +100,25 @@ public class MailPool
 		}
 		this.recv.get(to).add(mail.getId());
 		
-		try {
+		EntityPlayerMP receiver = Server.getOnlinePlayer(to);
+		if(receiver != null)	//online
+		{
+			ModChannels.mailSyncChannel.sendTo(new S2CMailNotification(1), receiver);
+		}
+		else	//offline
+		{
+			if(this.unnotified.get(to) == null)
+			{
+				this.unnotified.put(to, 0);
+			}
+			this.unnotified.put(to, this.unnotified.get(to) + 1);
+		}
+		
+		try 
+		{
 			this.save();
-		} catch (Exception e) {
+		} 
+		catch (Exception e) {
 			logger.fatal("Error occurs at MailPool#save()", e);
 		}
 	}
@@ -98,6 +131,14 @@ public class MailPool
 			if(this.recv.get(player) != null)
 			{
 				this.recv.get(player).remove(mail);
+			}
+			
+			try 
+			{
+				this.save();
+			} 
+			catch (Exception e) {
+				logger.fatal("Error occurs at MailPool#save()", e);
 			}
 		}
 	}
@@ -181,6 +222,8 @@ public class MailPool
 		{
 			logger.fatal("Fail to init MailPool", ex);
 		}
+		
+		MinecraftForge.EVENT_BUS.register(new MailNotificationPusher());
 		
 		return MailPool.instance;
 	}
@@ -347,6 +390,33 @@ public class MailPool
 				Boolean unread = tag.getBoolean("unread");
 				
 				return new Header(mid, timestamp, to, from, sender, title, unread);
+			}
+		}
+	}
+	
+	public static class MailNotificationPusher
+	{
+		@SubscribeEvent(priority=EventPriority.NORMAL, receiveCanceled=true)
+		public void onEntityJoinWorld(EntityJoinWorldEvent event)
+		{
+			if(event.getEntity() instanceof EntityPlayer)
+			{
+				EntityPlayer player = (EntityPlayer) event.getEntity();
+				int mailCount = (MailPool.instance().unnotified.containsKey(player.getUniqueID()))? MailPool.instance().unnotified.get(player.getUniqueID()): 0;
+				
+				if(mailCount > 0)
+				{
+					if(player instanceof EntityPlayerMP)
+					{
+						ModChannels.mailSyncChannel.sendTo(new S2CMailNotification(mailCount), (EntityPlayerMP)player);
+						MailPool.instance.unnotified.remove(player.getUniqueID());
+						try {
+							MailPool.instance.save();
+						} catch (Exception e) {
+							logger.fatal("Error occurs at MailPool#save()", e);
+						}
+					}
+				}
 			}
 		}
 	}

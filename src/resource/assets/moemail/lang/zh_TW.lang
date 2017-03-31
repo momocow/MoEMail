@@ -45,3 +45,5 @@ gui.moemail.GuiNewMail.remainWordCount=剩餘%d字
 gui.moemail.GuiSendMailConfirm.title=確定要送出此封訊息?
 gui.moemail.GuiSendMailConfirm.receiverNotFound=查無收件人
 gui.moemail.GuiSendMailConfirm.unknownError=未知的錯誤
+gui.moemail.GuiMailNotification.notification=你有%d封新訊息!
+gui.moemail.GuiMailNotification.tooltip=按下M以讀取訊息

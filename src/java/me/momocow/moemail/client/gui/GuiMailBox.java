@@ -81,7 +81,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			this.accountButton.visible = true;
 			this.accountButton.enabled = true;
 			this.clearTooltip(this.accountButton.id);
-			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo" + TextFormatting.YELLOW + "(Ctrl+I)"));
+			this.addTooltip(accountButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".accountInfo") + TextFormatting.YELLOW + "(Ctrl+I)");
 			this.buttonList.add(this.accountButton);
 		}
 		

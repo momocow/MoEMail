@@ -13,6 +13,7 @@ import me.momocow.moemail.network.S2CMailContentPacket;
 import me.momocow.moemail.network.S2CMailDeleteResponsePacket;
 import me.momocow.moemail.network.S2CMailHeaderPacket;
 import me.momocow.moemail.network.S2CMailInsertResponsePacket;
+import me.momocow.moemail.network.S2CMailNotification;
 import me.momocow.moemail.network.S2CPasswdResultPacket;
 import me.momocow.moemail.reference.ID;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -40,6 +41,8 @@ public class ModChannels
 		
 		mailSyncChannel.registerMessage(C2SMailInsertPacket.Handler.class, C2SMailInsertPacket.class, ID.Packet.MailSync.C2SMailInsertPacket, Side.SERVER);
 		mailSyncChannel.registerMessage(S2CMailInsertResponsePacket.Handler.class, S2CMailInsertResponsePacket.class, ID.Packet.MailSync.S2CMailInsertResponsePacket, Side.CLIENT);
+		
+		mailSyncChannel.registerMessage(S2CMailNotification.Handler.class, S2CMailNotification.class, ID.Packet.MailSync.S2CMailNotification, Side.CLIENT);
 		
 		httpdChannel = NetworkRegistry.INSTANCE.newSimpleChannel(ID.Channel.httpd);
 		

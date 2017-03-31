@@ -23,6 +23,7 @@ public class ID
 			public static final int S2CMailDeleteResponsePacket = 6;
 			public static final int C2SMailInsertPacket = 7;
 			public static final int S2CMailInsertResponsePacket = 8;
+			public static final int S2CMailNotification = 9;
 		}
 		
 		public static final class MailHttpd
