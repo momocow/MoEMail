@@ -120,7 +120,7 @@ public class GuiMailButton extends MoButton
 	            
 	            //title
 	            this.drawString(mc.fontRendererObj, 
-	            		mc.fontRendererObj.trimStringToWidth((head.getTitle().equals("commands.moemail.SendMail.defaultTitle")? I18n.format("commands.moemail.SendMail.defaultTitle"): head.getTitle()), divSize3 - 10),
+	            		mc.fontRendererObj.trimStringToWidth((head.getTitle().equals("gui.moemail.mail.defaultTitle")? I18n.format("gui.moemail.mail.defaultTitle"): head.getTitle()), divSize3 - 10),
 	            		this.xPosition + 5 + divSize1 + divSize2, this.yPosition + 5, j);
             }
         }

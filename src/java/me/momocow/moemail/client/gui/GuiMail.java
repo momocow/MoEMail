@@ -104,14 +104,21 @@ public class GuiMail extends MoCenteredGuiScreen
     	
     	//mail title
     	stop = fontRendererObj.drawString(this.textMailTitle + ": ", this.col(3), this.row(3), fontRendererObj.getColorCode('0'));
-    	fontRendererObj.drawString(this.header.getTitle().equals("commands.moemail.SendMail.defaultTitle")? I18n.format("commands.moemail.SendMail.defaultTitle"): this.header.getTitle(), 
+    	fontRendererObj.drawString(this.header.getTitle().equals("gui.moemail.mail.defaultTitle")? I18n.format("gui.moemail.mail.defaultTitle"): this.header.getTitle(), 
     			stop, this.row(3), fontRendererObj.getColorCode('8'));
     	    	
     	//mail content
-    	int lineToDraw = Math.min(MAX_LINE, this.mailContent.size());
-    	for(int i = 0; i< lineToDraw; i++)
+    	for(int i = 0; i< MAX_LINE; i++)
     	{
-    		fontRendererObj.drawString(this.mailContent.get(i + this.pageCursor * MAX_LINE), this.getGlobalX(24), this.getGlobalY(43 + 9 * i), fontRendererObj.getColorCode('8'));
+    		if(i + this.pageCursor < this.mailContent.size())
+    		{
+    			this.fontRendererObj.drawString(this.mailContent.get(i + this.pageCursor), 
+    					this.getGlobalX(24), this.getGlobalY(43 + 9 * i), fontRendererObj.getColorCode('8'));
+    		}
+    		else
+    		{
+    			break;
+    		}
     	}
     	
     	this.homeButton.drawButton(mc, mouseX, mouseY);
@@ -202,7 +209,8 @@ public class GuiMail extends MoCenteredGuiScreen
 	public void updateContent(String rawContent)
 	{
 		this.mailContent = this.fontRendererObj.listFormattedStringToWidth(rawContent, 188);
-		this.pageCount = (int) Math.ceil((double) this.mailContent.size() / (double) MAX_LINE);
+		this.pageCount = Math.max(this.mailContent.size() - MAX_LINE + 1, 1);
+		this.initGui();
 	}
 	
 	public void displayParentGui()

@@ -1,6 +1,7 @@
 package me.momocow.moemail.client.gui;
 
 import me.momocow.mobasic.client.gui.MoGuiScreen;
+import me.momocow.moemail.client.MailNotificationHandler;
 import me.momocow.moemail.reference.Reference;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -8,10 +9,7 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class GuiMailNotification extends Gui
 {
@@ -134,22 +132,5 @@ public class GuiMailNotification extends Gui
             GlStateManager.depthMask(true);
             GlStateManager.enableDepth();
         }
-    }
-    
-    public static class MailNotificationHandler
-    {
-    	private GuiMailNotification mn;
-    	
-    	public MailNotificationHandler(int count) 
-    	{
-			this.mn = new GuiMailNotification(Minecraft.getMinecraft(), count);
-			this.mn.setHandler(this);
-		}
-    	
-    	@SubscribeEvent(priority=EventPriority.NORMAL, receiveCanceled=true)
-    	public void onRenderGameOverlay(RenderGameOverlayEvent event)
-    	{
-    		this.mn.updateScreen();
-    	}
     }
 }

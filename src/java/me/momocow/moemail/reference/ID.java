@@ -7,12 +7,19 @@ public class ID
 	 */
 	public static final class Channel	
 	{
+		public static final String playerData = "moemailPlayerData";
 		public static final String mailSync = "moemailSyncChannel";
 		public static final String httpd = "moemailHttpdChannel";
 	}
 	
 	public static final class Packet
 	{
+		public static final class PlayerData
+		{
+			public static final int C2SFetchPlayerListPacket = 1;
+			public static final int S2CPlayerListPacket = 2;
+		}
+		
 		public static final class MailSync
 		{
 			public static final int C2SFetchMailPacket = 1;

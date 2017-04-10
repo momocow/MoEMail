@@ -4,6 +4,7 @@ import me.momocow.moemail.network.C2SCheckAccountPacket;
 import me.momocow.moemail.network.C2SFetchMailBoxURLPacket;
 import me.momocow.moemail.network.C2SFetchMailContentPacket;
 import me.momocow.moemail.network.C2SFetchMailHeaderPacket;
+import me.momocow.moemail.network.C2SFetchPlayerListPacket;
 import me.momocow.moemail.network.C2SMailDeletePacket;
 import me.momocow.moemail.network.C2SMailInsertPacket;
 import me.momocow.moemail.network.C2SUpdatePasswdPacket;
@@ -15,6 +16,7 @@ import me.momocow.moemail.network.S2CMailHeaderPacket;
 import me.momocow.moemail.network.S2CMailInsertResponsePacket;
 import me.momocow.moemail.network.S2CMailNotification;
 import me.momocow.moemail.network.S2CPasswdResultPacket;
+import me.momocow.moemail.network.S2CPlayerListPacket;
 import me.momocow.moemail.reference.ID;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -23,11 +25,17 @@ import net.minecraftforge.fml.relauncher.Side;
 
 public class ModChannels 
 {
+	public static SimpleNetworkWrapper playerDataChannel;
 	public static SimpleNetworkWrapper mailSyncChannel;
 	public static SimpleNetworkWrapper httpdChannel;
 	
 	public static void init(FMLPreInitializationEvent e) 
 	{
+		playerDataChannel = NetworkRegistry.INSTANCE.newSimpleChannel(ID.Channel.playerData);
+		
+		playerDataChannel.registerMessage(C2SFetchPlayerListPacket.Handler.class, C2SFetchPlayerListPacket.class, ID.Packet.PlayerData.C2SFetchPlayerListPacket, Side.SERVER);
+		playerDataChannel.registerMessage(S2CPlayerListPacket.Handler.class, S2CPlayerListPacket.class, ID.Packet.PlayerData.S2CPlayerListPacket, Side.CLIENT);
+		
 		mailSyncChannel = NetworkRegistry.INSTANCE.newSimpleChannel(ID.Channel.mailSync);
 		
 		mailSyncChannel.registerMessage(C2SFetchMailHeaderPacket.Handler.class, C2SFetchMailHeaderPacket.class, ID.Packet.MailSync.C2SFetchMailPacket, Side.SERVER);

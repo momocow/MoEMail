@@ -7,6 +7,7 @@ import me.momocow.moemail.handler.GuiHandler;
 import me.momocow.moemail.init.ModChannels;
 import me.momocow.moemail.init.ModCommands;
 import me.momocow.moemail.init.ModConfigs;
+import me.momocow.moemail.init.ModSounds;
 import me.momocow.moemail.server.MailPool;
 import me.momocow.moemail.server.MoHTTPD;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -30,6 +31,7 @@ public abstract class CommonProxy
 	{
 		ModConfigs.init(e);
 		ModChannels.init(e);
+		ModSounds.init(e);
 	}
 	
 	public void init(FMLInitializationEvent e) throws Exception

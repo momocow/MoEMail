@@ -1,14 +1,21 @@
 #Commands
 commands.moemail.SendMail.usage=email|mail|em <收件者> <標題|*> <訊息...>
-commands.moemail.SendMail.defaultTitle=無標題
 commands.moemail.SendMail.receiverNotFound=收件者不存在
 commands.moemail.SendMail.mailsent=信件已送出
+
+#config
+config.moemail.ConfigGeneral.category.general=一般設定
+config.moemail.ConfigGeneral.category.httpd=網頁伺服器
+config.moemail.ConfigGeneral.entry.mailStorageDir=存檔路徑
+config.moemail.ConfigGeneral.entry.mailNotificationSound=來信通知音效
+config.moemail.ConfigGeneral.entry.isDedicatedServerOnly=只在專用伺服器建立
 
 #key
 key.moemail.mailBoxGui.desc=查看信箱
 key.moemail.category.name=MoEMail
 
 #Gui
+gui.moemail.mail.defaultTitle=無標題
 gui.moemail.GuiMailBox.title=我的麥塊信箱
 gui.moemail.GuiMailBox.pageIndex=第%d頁/共%d頁
 gui.moemail.GuiMailBox.accountInfo=帳號資訊
@@ -41,9 +48,17 @@ gui.moemail.GuiNewMail.receiver=收件者
 gui.moemail.GuiNewMail.mailTitle=標題
 gui.moemail.GuiNewMail.home=首頁
 gui.moemail.GuiNewMail.send=送出
+gui.moemail.GuiNewMail.addReceiver=新增收件者
+gui.moemail.GuiNewMail.clearReceiver=清除
 gui.moemail.GuiNewMail.remainWordCount=剩餘%d字
 gui.moemail.GuiSendMailConfirm.title=確定要送出此封訊息?
 gui.moemail.GuiSendMailConfirm.receiverNotFound=查無收件人
 gui.moemail.GuiSendMailConfirm.unknownError=未知的錯誤
 gui.moemail.GuiMailNotification.notification=你有%d封新訊息!
 gui.moemail.GuiMailNotification.tooltip=按下M以讀取訊息
+gui.moemail.GuiSelectPlayer.title=請選擇一名收件者
+gui.moemail.GuiSelectPlayer.searchbar=搜尋
+gui.moemail.GuiSelectPlayer.ok=確定
+gui.moemail.GuiSelectPlayer.no=取消
+gui.moemail.GuiConfigMoEMail.title=麥塊信箱設定
+gui.moemail.GuiConfigMoEMail.contentTable=目錄

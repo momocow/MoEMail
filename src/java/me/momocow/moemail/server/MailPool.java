@@ -241,7 +241,7 @@ public class MailPool
 		
 		public Mail(UUID to, UUID from, String senderName, String title, String c)
 		{
-			if(title.isEmpty()) title = "mail.MailBox.defaultTitle";
+			if(title.isEmpty()) title = "gui.moemail.mail.defaultTitle";
 			this.header = new Header(to, from, senderName, title);
 			this.content = c;
 		}

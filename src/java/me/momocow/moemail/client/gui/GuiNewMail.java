@@ -1,8 +1,11 @@
 package me.momocow.moemail.client.gui;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.lwjgl.input.Keyboard;
+
+import com.mojang.authlib.GameProfile;
 
 import me.momocow.mobasic.client.gui.MoCenteredGuiScreen;
 import me.momocow.mobasic.client.gui.MoGuiScreen;
@@ -11,7 +14,10 @@ import me.momocow.mobasic.client.gui.widget.MoTextArea;
 import me.momocow.mobasic.client.gui.widget.MoTextArea.UpdatableGuiParent;
 import me.momocow.mobasic.client.gui.widget.MoTextField;
 import me.momocow.mobasic.client.gui.widget.MoVanillaScrollBar;
+import me.momocow.moemail.init.ModChannels;
+import me.momocow.moemail.network.C2SFetchPlayerListPacket;
 import me.momocow.moemail.reference.Reference;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ChatAllowedCharacters;
@@ -24,6 +30,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	private static final int MAX_TITLE_LEN = 30;
 	private static final int MAX_CONTENT_LEN = 500;
 	private final static int ENABLED_TEXT_COLOR = 5987163;
+	private final static int RECEIVER_NAME_LEN_PIXEL = 130;
 	
 	private final static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
 	private final static ResourceLocation HOMEBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/homebutton.png");
@@ -34,9 +41,10 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	
 	private GuiMailBox parent;
 	
+	private GameProfile receiver;
+	private List<GameProfile> playerList;
 	private int pageCursor = 0;
 
-	private String bufMailReceiver = "";
 	private String bufMailTitle = "";
 	private int stageCount = 1;
 	private boolean forcedUpdate = true;
@@ -46,9 +54,9 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	private MoVanillaScrollBar  scrollbar;
 	private MoIconButton homeButton;
 	private MoIconButton sendMailButton;
-	private MoTextField receiver;
 	private MoTextField mailTitle;
 	private MoTextArea mailContent;
+	private GuiButton addReceiver;
 
 	//text
 	private String textGuiTitle;
@@ -87,14 +95,6 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		this.clearTooltip(this.homeButton.id);
 		this.addTooltip(this.homeButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".home") + TextFormatting.YELLOW + "(Ctrl+H)");
 		
-		this.receiver = new MoTextField(1, this.fontRendererObj, this.col(7), this.row(2), 1, 11, 1, 1, 58, 8, 60, 20, 60, 10, TEXTFIELD);
-		this.receiver.setVisible(true);
-		this.receiver.setEnabled(true);
-		this.receiver.setEnableBackgroundDrawing(true);
-		this.receiver.setTextColor(ENABLED_TEXT_COLOR);
-		this.receiver.setText(this.bufMailReceiver);
-		this.receiver.setMaxStringLength(MAX_TITLE_LEN);
-		
 		this.mailTitle = new MoTextField(2, this.fontRendererObj, this.col(7), this.row(3) + 1, 1, 11, 1, 1, 58, 8, 60, 20, 100, 10, TEXTFIELD);
 		this.mailTitle.setVisible(true);
 		this.mailTitle.setEnabled(true);
@@ -103,6 +103,26 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		this.mailTitle.setText(this.bufMailTitle);
 		this.mailTitle.setMaxStringLength(MAX_TITLE_LEN);
 		
+		int xOffset = this.col(7);
+		if(this.receiver != null)
+		{
+			xOffset += Math.min(this.fontRendererObj.getStringWidth(this.receiver.getName()), RECEIVER_NAME_LEN_PIXEL) + 5;
+		}
+		this.addReceiver = new GuiButton(2, xOffset, this.row(2), 10, 10, (this.receiver == null)? "+": "x");
+		this.addReceiver.packedFGColour = this.fontRendererObj.getColorCode('c');
+		this.clearTooltip(this.addReceiver.id);
+		String textReceiver = ".clearReceiver";
+		if(this.receiver == null)
+		{
+			if(this.playerList == null || this.playerList.size() == 0)
+			{
+				ModChannels.playerDataChannel.sendToServer(new C2SFetchPlayerListPacket(this.mc.thePlayer.getUniqueID()));
+			}
+			this.addReceiver.enabled = this.playerList != null && this.playerList.size() > 0;
+			textReceiver = ".addReceiver";
+		}
+		this.addTooltip(this.addReceiver.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + textReceiver)+ TextFormatting.YELLOW + "(Ctrl+R)");
+			
 		this.sendMailButton = new MoIconButton(1, this.getGlobalX(195), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, SENDMAIL);
 		this.clearTooltip(this.sendMailButton.id);
 		this.addTooltip(this.sendMailButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".send")+ TextFormatting.YELLOW + "(Ctrl+Shift+S)");
@@ -144,8 +164,13 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
     	
     	//receiver
 		this.fontRendererObj.drawString(this.textReceiver + ": ", this.col(3), this.row(2), this.fontRendererObj.getColorCode('0'));
-    	this.receiver.drawTextBox();
-    	
+		if(this.receiver != null)
+		{
+			this.fontRendererObj.drawString(this.fontRendererObj.trimStringToWidth(this.receiver.getName(), RECEIVER_NAME_LEN_PIXEL), 
+					this.col(7), this.row(2), this.fontRendererObj.getColorCode('8'));
+		}
+    	this.addReceiver.drawButton(this.mc, mouseX, mouseY);
+		
     	//mail title
     	this.fontRendererObj.drawString(this.textMailTitle + ": ", this.col(3), this.row(3) + 1, this.fontRendererObj.getColorCode('0'));
     	this.mailTitle.drawTextBox();
@@ -168,17 +193,15 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
     	{
     		this.drawTooltip(this.sendMailButton.id, mouseX, mouseY);
     	}
+    	else if(this.addReceiver.isMouseOver())
+    	{
+    		this.drawTooltip(this.addReceiver.id, mouseX, mouseY);
+    	}
 	}
 	
 	@Override
 	protected void keyTyped(char typedChar, int keyCode) throws IOException 
 	{
-		if(this.receiver.textboxKeyTyped(typedChar, keyCode))
-		{
-			this.bufMailReceiver = this.receiver.getText();
-			return;
-		}
-		
 		if(this.mailTitle.textboxKeyTyped(typedChar, keyCode))
 		{
 			this.bufMailTitle = this.mailTitle.getText();
@@ -193,6 +216,18 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		if(keyCode == 35 && GuiScreen.isCtrlKeyDown())	//h
 		{
 			this.displayParentGui();
+		}
+		else if(keyCode == 19 && GuiScreen.isCtrlKeyDown())	//r
+		{
+			if(this.receiver == null && this.addReceiver.enabled)
+			{
+				this.changeGui(new GuiSelectPlayer(this, this.playerList));
+			}
+			else if(this.receiver != null)
+			{
+				this.receiver = null;
+				this.initGui();
+			}
 		}
 		else if(keyCode == 31 && GuiScreen.isCtrlKeyDown() && GuiScreen.isShiftKeyDown())
 		{
@@ -215,7 +250,21 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	{
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		
-		this.receiver.mouseClicked(mouseX, mouseY, mouseButton);
+		if(this.addReceiver.mousePressed(mc, mouseX, mouseY))
+		{
+			if(this.receiver == null)
+			{
+				this.changeGui(new GuiSelectPlayer(this, this.playerList));
+			}
+			else
+			{
+				this.receiver = null;
+				this.initGui();
+			}
+			
+			return;
+		}
+		
 		this.mailTitle.mouseClicked(mouseX, mouseY, mouseButton);
 		this.mailContent.mouseClicked(mouseX, mouseY, mouseButton);
 		
@@ -285,10 +334,14 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		Keyboard.enableRepeatEvents(false);
 	}
 	
-	public String getReceiver()
+	public void setReceiver(GameProfile profile)
 	{
-		String r = this.receiver.getText();
-		return (r ==null)? "": r;
+		this.receiver = profile;
+	}
+	
+	public String getReceiverName()
+	{
+		return (this.receiver == null)? "": this.receiver.getName();
 	}
 	
 	public String getTitle()
@@ -300,6 +353,15 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	public String getContent()
 	{
 		return this.mailContent.getContentString();
+	}
+	
+	public void setCandidateReceivers(List<GameProfile> players)
+	{
+		if(players != null && players.size() > 0)
+		{
+			this.playerList = players;
+			this.addReceiver.enabled = true;
+		}
 	}
 
 	/**

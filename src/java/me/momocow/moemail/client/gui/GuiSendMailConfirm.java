@@ -103,7 +103,7 @@ public class GuiSendMailConfirm extends MoCenteredGuiScreen
 				//ok
 				if(button.id == 0 && button.mousePressed(mc, mouseX, mouseY))
 				{
-					ModChannels.mailSyncChannel.sendToServer(new C2SMailInsertPacket(this.parent.getReceiver(),
+					ModChannels.mailSyncChannel.sendToServer(new C2SMailInsertPacket(this.parent.getReceiverName(),
 							this.mc.thePlayer.getUniqueID(),
 							this.parent.getTitle(),
 							this.parent.getContent()));

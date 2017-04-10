@@ -1,24 +1,31 @@
 package me.momocow.moemail.config;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.logging.log4j.Logger;
 
 import me.momocow.mobasic.config.MoConfig;
 import me.momocow.moemail.MoEMail;
 import me.momocow.moemail.reference.Reference;
+import net.minecraftforge.common.config.ConfigElement;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.fml.client.config.IConfigElement;
 
 public class ConfigGeneral implements MoConfig 
 {
-	private Configuration cfg;
+	private final Configuration cfg;
 	private static Logger logger = MoEMail.logger;
 	
 	private final String CONFIG_FILE = Reference.MOD_ID + "-general.cfg";
-	private final String CATEGORY_LOGS = Reference.MOD_ID + ".Logs";
-	private final String CATEGORY_HTTPD = Reference.MOD_ID + ".Httpd";
+	private final String CATEGORY_GENERAL = "General";
+	private final String LANG_GENERAL = "config." + Reference.MOD_ID + ".ConfigGeneral.category.general";
+	private final String CATEGORY_HTTPD = "Httpd";
+	private final String LANG_HTTPD = "config." + Reference.MOD_ID + ".ConfigGeneral.category.httpd";
 	
 	public String mailStorageDir = "data" + File.separator;
+	public int mailNotificationSound = 0;
 	
 	public static class Httpd
 	{
@@ -28,7 +35,7 @@ public class ConfigGeneral implements MoConfig
 	
 	public ConfigGeneral(File configDir)
 	{
-		cfg = new Configuration(new File(configDir.getPath(), this.CONFIG_FILE), Reference.VERSION);
+		cfg = new Configuration(new File(configDir.getPath(), this.CONFIG_FILE), Reference.VERSION, false);
 	}
 	
 	public MoConfig load()
@@ -37,14 +44,17 @@ public class ConfigGeneral implements MoConfig
         {
 			this.cfg.load();
 			
-			cfg.addCustomCategoryComment(CATEGORY_LOGS, "MoEMail Data Storage Configuration");
-			cfg.setCategoryLanguageKey(CATEGORY_LOGS, CATEGORY_LOGS);
-			mailStorageDir = cfg.getString("mailStorageDir", CATEGORY_LOGS, mailStorageDir, 
-					"A relative path from the Minecraft directory to the logs directory where you allow the mod to place the mail pool storage. The mod will automatically create its own directory under this provided directory.");
+			cfg.addCustomCategoryComment(CATEGORY_GENERAL, "MoEMail Data Storage Configuration");
+			cfg.setCategoryLanguageKey(CATEGORY_GENERAL, LANG_GENERAL);
+			mailStorageDir = cfg.getString("mailStorageDir", CATEGORY_GENERAL, mailStorageDir, 
+					"A relative path from the Minecraft directory to the logs directory where you allow the mod to place the mail pool storage. The mod will automatically create its own directory under this provided directory.",
+					"config." + Reference.MOD_ID + ".ConfigGeneral.entry.mailStorageDir");
+			mailNotificationSound = cfg.getInt("mailNotificationSound", CATEGORY_GENERAL, mailNotificationSound, -1, 9, "-1: No notification sound; Can be set ingame", "config." + Reference.MOD_ID + ".ConfigGeneral.entry.mailNotificationSound");
+			
 			
 			cfg.addCustomCategoryComment(CATEGORY_HTTPD, "MoEMail Http Server Configuration");
-			cfg.setCategoryLanguageKey(CATEGORY_HTTPD, CATEGORY_HTTPD);
-			this.httpd.isDedicatedServerOnly = cfg.getBoolean("isDedicatedServerOnly", CATEGORY_HTTPD, this.httpd.isDedicatedServerOnly, "Leave it as default value if you do not know what it is.");
+			cfg.setCategoryLanguageKey(CATEGORY_HTTPD, LANG_HTTPD);
+			this.httpd.isDedicatedServerOnly = cfg.getBoolean("isDedicatedServerOnly", CATEGORY_HTTPD, this.httpd.isDedicatedServerOnly, "Leave it as default value if you do not know what it is.", "config." + Reference.MOD_ID + ".ConfigGeneral.entry.isDedicatedServerOnly");
         }
         catch (Exception ex)
         {
@@ -66,5 +76,26 @@ public class ConfigGeneral implements MoConfig
 		}
 		
 		return this;
+	}
+	
+	public Configuration getConfig()
+	{
+		return this.cfg;
+	}
+	
+	public List<IConfigElement> getCategories()
+	{
+		List<IConfigElement> categories = new ArrayList<IConfigElement>();
+		for(String category: this.cfg.getCategoryNames())
+		{
+			categories.add(new ConfigElement(this.cfg.getCategory(category)));
+		}
+		
+		return categories;
+	}
+	
+	public String getConfigPath()
+	{
+		return this.cfg.getConfigFile().getAbsolutePath();
 	}
 }

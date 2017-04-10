@@ -14,7 +14,11 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 
-@Mod(modid = Reference.MOD_ID, name = Reference.MOD_NAME, version = Reference.VERSION, dependencies = Reference.DEPENDENCIES)
+@Mod(modid = Reference.MOD_ID, 
+	name = Reference.MOD_NAME, 
+	version = Reference.VERSION, 
+	dependencies = Reference.DEPENDENCIES, 
+	guiFactory = Reference.GUIFACTORY)
 public class MoEMail
 {
 	@Mod.Instance(Reference.MOD_ID)

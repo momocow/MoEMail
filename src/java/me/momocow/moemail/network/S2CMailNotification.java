@@ -1,7 +1,7 @@
 package me.momocow.moemail.network;
 
 import io.netty.buffer.ByteBuf;
-import me.momocow.moemail.client.gui.GuiMailNotification.MailNotificationHandler;
+import me.momocow.moemail.client.MailNotificationHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
