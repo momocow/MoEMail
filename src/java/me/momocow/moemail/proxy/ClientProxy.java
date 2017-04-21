@@ -1,5 +1,6 @@
 package me.momocow.moemail.proxy;
 
+import me.momocow.moemail.client.MailNotificationHandler;
 import me.momocow.moemail.init.ModKeyBindings;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
@@ -15,5 +16,10 @@ public class ClientProxy extends CommonProxy
 	{
 		super.init(e);
 		this.registerKeyBindings(e);
+	}
+	
+	public static void playNotificationSound(int soundId)
+	{
+		MailNotificationHandler.playNotificationSound(soundId);
 	}
 }

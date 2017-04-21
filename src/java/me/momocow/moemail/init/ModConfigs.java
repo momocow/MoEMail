@@ -7,11 +7,12 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 
 import me.momocow.mobasic.config.MoConfig;
-import me.momocow.moemail.reference.Reference;
 import me.momocow.moemail.MoEMail;
 import me.momocow.moemail.config.ConfigGeneral;
 import me.momocow.moemail.config.ConfigHttpd;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import me.momocow.moemail.handler.ConfigHandler;
+import me.momocow.moemail.reference.Reference;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
@@ -48,6 +49,8 @@ public class ModConfigs
 		{
 			logger.warn("Error occurs when initializing configurations.", ex);
 		}
+		
+		MinecraftForge.EVENT_BUS.register(new ConfigHandler());
 	}
 	
 	private static MoConfig initConfig(Class<? extends MoConfig> configClazz) throws Exception
@@ -58,11 +61,19 @@ public class ModConfigs
 		return conf;
 	}
 	
-	public static void save(FMLPostInitializationEvent e)
+	public static void save()
 	{
 		for(MoConfig conf: configs)
 		{
 			conf.save();
+		}
+	}
+	
+	public static void load()
+	{
+		for(MoConfig conf: configs)
+		{
+			conf.load();
 		}
 	}
 }

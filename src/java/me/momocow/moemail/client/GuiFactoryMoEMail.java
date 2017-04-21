@@ -21,14 +21,12 @@ public class GuiFactoryMoEMail implements IModGuiFactory
 	@Override
 	public Set<RuntimeOptionCategoryElement> runtimeGuiCategories() 
 	{
-		Thread.dumpStack();
 		return null;
 	}
 
 	@Override
 	public RuntimeOptionGuiHandler getHandlerFor(RuntimeOptionCategoryElement element) 
 	{
-		Thread.dumpStack();
 		return null;
 	}
 

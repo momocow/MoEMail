@@ -8,7 +8,7 @@ import net.minecraftforge.fml.client.config.GuiConfig;
 
 public class GuiConfigMoEMail extends GuiConfig
 {
-	private static final String LANG_KEY = "gui." + Reference.MOD_ID + "GuiConfigMoEMail";
+	private static final String LANG_KEY = "gui." + Reference.MOD_ID + ".GuiConfigMoEMail";
 	
 	public GuiConfigMoEMail(GuiScreen parentScreen) 
 	{

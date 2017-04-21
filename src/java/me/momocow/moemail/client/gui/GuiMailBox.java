@@ -26,6 +26,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 	private final static ResourceLocation TEXTURE = new ResourceLocation(Reference.MOD_ID, "textures/gui/mailbox.png");
 	private final static ResourceLocation ACCOUNTBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/personalInfoButton.png");
 	private final static ResourceLocation NEWMAILBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/newMail.png");
+	private final static ResourceLocation SETTINGBUTTON = new ResourceLocation(Reference.MOD_ID, "textures/gui/settingButton.png");
 	private final static ResourceLocation SCROLLBAR = new ResourceLocation(Reference.MOD_ID, "textures/gui/scrollbar.png");
 	private final static String NAME = "GuiMailBox";
 	
@@ -41,6 +42,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 	private MoVanillaScrollBar  scrollbar;
 	private MoIconButton accountButton;
 	private MoIconButton newMailButton;
+	private MoIconButton settingButton;
 	private List<GuiMailButton> mailButtonList = new ArrayList<GuiMailButton>();
 	
 	public GuiMailBox()
@@ -77,7 +79,7 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		
 		if(!mc.isSingleplayer() || !ModConfigs.general.httpd.isDedicatedServerOnly)
 		{
-			this.accountButton = new MoIconButton(1, this.getGlobalX(220), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, ACCOUNTBUTTON);
+			this.accountButton = new MoIconButton(3, this.getGlobalX(220), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, ACCOUNTBUTTON);
 			this.accountButton.visible = true;
 			this.accountButton.enabled = true;
 			this.clearTooltip(this.accountButton.id);
@@ -85,7 +87,14 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			this.buttonList.add(this.accountButton);
 		}
 		
-		this.newMailButton = new MoIconButton(2, this.getGlobalX(195), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, NEWMAILBUTTON);
+		this.settingButton = new MoIconButton(2, this.getGlobalX(195), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, SETTINGBUTTON);
+		this.settingButton.visible = true;
+		this.settingButton.enabled = true;
+		this.clearTooltip(this.settingButton.id);
+		this.addTooltip(settingButton.id, TextFormatting.AQUA + I18n.format(this.getUnlocalizedName() + ".setting") + TextFormatting.YELLOW + "(Ctrl+E)");
+		this.buttonList.add(this.settingButton);
+		
+		this.newMailButton = new MoIconButton(1, this.getGlobalX(170), this.row(2) - 5, 0, 64, 0, 0, 20, 20, 64, 64, 64, 128, NEWMAILBUTTON);
 		this.newMailButton.visible = true;
 		this.newMailButton.enabled = true;
 		this.clearTooltip(this.newMailButton.id);
@@ -144,6 +153,10 @@ public class GuiMailBox extends MoCenteredGuiScreen
 		{
 			this.drawTooltip(this.newMailButton.id, mouseX, mouseY);
 		}
+		else if(this.settingButton != null && this.settingButton.isHovered(mouseX, mouseY))
+		{
+			this.drawTooltip(this.settingButton.id, mouseX, mouseY);
+		}
 	}
 	
 	@Override
@@ -165,6 +178,10 @@ public class GuiMailBox extends MoCenteredGuiScreen
     	else if(keyCode == 49 && GuiScreen.isCtrlKeyDown())	//n
     	{
     		this.changeGui(new GuiNewMail(this));
+    	}
+    	else if(keyCode == 18 && GuiScreen.isCtrlKeyDown())	//e
+    	{
+    		this.changeGui(new GuiSetting(this));
     	}
     	else if(keyCode >= 2 && keyCode <= 7 && GuiScreen.isCtrlKeyDown()) //1~6
     	{
@@ -202,13 +219,17 @@ public class GuiMailBox extends MoCenteredGuiScreen
 			{
 				if(button.mousePressed(mc, mouseX, mouseY))
 				{
-					if(button.id == 1)
+					if(this.accountButton != null && button.id == this.accountButton.id)
 					{
 						this.changeGui(new GuiMailBoxAccount(this));
 					}
-					else if(button.id == 2)
+					else if(button.id == this.newMailButton.id)
 					{
 						this.changeGui(new GuiNewMail(this));
+					}
+					else if(button.id == this.settingButton.id)
+					{
+						this.changeGui(new GuiSetting(this));
 					}
 				}
 			}

@@ -9,6 +9,7 @@ config.moemail.ConfigGeneral.category.httpd=網頁伺服器
 config.moemail.ConfigGeneral.entry.mailStorageDir=存檔路徑
 config.moemail.ConfigGeneral.entry.mailNotificationSound=來信通知音效
 config.moemail.ConfigGeneral.entry.isDedicatedServerOnly=只在專用伺服器建立
+config.moemail.ConfigGeneral.entry.maxMsgSize=訊息長度限制
 
 #key
 key.moemail.mailBoxGui.desc=查看信箱
@@ -20,6 +21,7 @@ gui.moemail.GuiMailBox.title=我的麥塊信箱
 gui.moemail.GuiMailBox.pageIndex=第%d頁/共%d頁
 gui.moemail.GuiMailBox.accountInfo=帳號資訊
 gui.moemail.GuiMailBox.newMail=新訊息
+gui.moemail.GuiMailBox.setting=設定
 gui.moemail.GuiMail.title=我的訊息
 gui.moemail.GuiMail.time=時間
 gui.moemail.GuiMail.sender=寄件者
@@ -62,3 +64,7 @@ gui.moemail.GuiSelectPlayer.ok=確定
 gui.moemail.GuiSelectPlayer.no=取消
 gui.moemail.GuiConfigMoEMail.title=麥塊信箱設定
 gui.moemail.GuiConfigMoEMail.contentTable=目錄
+gui.moemail.GuiSetting.title=設定
+gui.moemail.GuiSetting.home=首頁
+gui.moemail.GuiSetting.mailNotificationSound=來信通知音效
+gui.moemail.GuiSetting.playSound=試聽

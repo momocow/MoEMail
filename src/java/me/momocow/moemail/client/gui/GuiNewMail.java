@@ -28,7 +28,6 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 {
 	private static final int MAX_LINE = 12;
 	private static final int MAX_TITLE_LEN = 30;
-	private static final int MAX_CONTENT_LEN = 500;
 	private final static int ENABLED_TEXT_COLOR = 5987163;
 	private final static int RECEIVER_NAME_LEN_PIXEL = 130;
 	
@@ -44,7 +43,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 	private GameProfile receiver;
 	private List<GameProfile> playerList;
 	private int pageCursor = 0;
-
+	private int maxMsgSize = 0;
 	private String bufMailTitle = "";
 	private int stageCount = 1;
 	private boolean forcedUpdate = true;
@@ -84,6 +83,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 		this.forceUpdate();
 		
 		this.mailContent = MoTextArea.load(new MoTextArea(this.getGlobalX(19), this.getGlobalY(43), 198, 9, MAX_LINE, fontRendererObj), this.mailContent);
+		this.mailContent.setEnabled(this.maxMsgSize > 0);
 		this.mailContent.setParent(this);
 		this.mailContent.setDisplayStartLine(this.pageCursor);
 		
@@ -177,7 +177,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
     	
     	//mail content
     	this.mailContent.drawTextArea();
-    	int remain = MAX_CONTENT_LEN - this.contentLen;
+    	int remain = maxMsgSize - this.contentLen;
     	String textRemainWord = I18n.format(this.getUnlocalizedName() + ".remainWordCount", remain);
     	this.drawCenteredString(this.fontRendererObj, textRemainWord, this.getCenterX(), this.getGlobalY(151), this.fontRendererObj.getColorCode(remain==0? 'c': '8'), false);
     	
@@ -208,7 +208,7 @@ public class GuiNewMail extends MoCenteredGuiScreen implements UpdatableGuiParen
 			return;
 		}
 		
-		if(this.contentLen < MAX_CONTENT_LEN || (!ChatAllowedCharacters.isAllowedCharacter(typedChar) && keyCode != 28 && keyCode != 156))
+		if(this.contentLen < maxMsgSize || (!ChatAllowedCharacters.isAllowedCharacter(typedChar) && keyCode != 28 && keyCode != 156))
 		{
 			if(this.mailContent.keyTyped(typedChar, keyCode)) return;
 		}

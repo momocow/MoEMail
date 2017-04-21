@@ -1,6 +1,8 @@
 package me.momocow.moemail.client;
 
+import me.momocow.moemail.client.gui.GuiMailBox;
 import me.momocow.moemail.client.gui.GuiMailNotification;
+import me.momocow.moemail.init.ModConfigs;
 import me.momocow.moemail.init.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -20,6 +22,11 @@ public class MailNotificationHandler
 	{
 		this.mn = new GuiMailNotification(Minecraft.getMinecraft(), count);
 		this.mn.setHandler(this);
+		
+		if(Minecraft.getMinecraft().currentScreen instanceof GuiMailBox)
+		{
+			((GuiMailBox) Minecraft.getMinecraft().currentScreen).setForceReload();;
+		}
 	}
 	
 	@SubscribeEvent(priority=EventPriority.NORMAL, receiveCanceled=true)
@@ -27,7 +34,7 @@ public class MailNotificationHandler
 	{
 		if(!this.isSoundPlayed)
 		{
-			playNotificationSound();
+			playNotificationSound(ModConfigs.general.mailNotificationSound);
 			this.isSoundPlayed = true;
 		}
 		

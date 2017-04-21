@@ -3,15 +3,22 @@
 	<head>
 		<title>MoEMail Online</title>
 		<meta charset="UTF-8">
+		<link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+		<script
+		  src="https://code.jquery.com/jquery-3.1.1.min.js"
+		  integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+		  crossorigin="anonymous"></script>
+		<script src="semantic/dist/semantic.min.js"></script>
 	</head>
 	<body>
-		<form action="/auth/login" method="POST">
-			<label for="username">帳號</label>
-			<input id="username" name="username" type="text">
-			<label for="password">密碼</label>
-			<input id="password" name="password" type="password">
-			<input type="submit" value="登入">
-			<div id="feedback"></div>
-		</form>
+		<div class="ui form" id="login">
+			<form action="/auth/login" method="POST">
+				<label for="username">帳號</label>
+				<input id="username" name="username" type="text">
+				<label for="password">密碼</label>
+				<input id="password" name="password" type="password">
+				<input type="submit" value="登入">
+			</form>
+		</div>
 	</body>
 </html>

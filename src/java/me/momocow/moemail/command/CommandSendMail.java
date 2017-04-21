@@ -54,7 +54,7 @@ public class CommandSendMail extends MoCommand
 			String title = args[1];
 			if(title.equals("*") || title.isEmpty())
 			{
-				title = this.getUnlocalizedName() + ".defaultTitle";
+				title = "gui.moemail.mail.defaultTitle";
 			}
 			
 			String message = "";

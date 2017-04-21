@@ -55,6 +55,7 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.google.common.collect.Sets;
 import com.mojang.authlib.GameProfile;
 
 import fi.iki.elonen.NanoHTTPD;
@@ -73,6 +74,7 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.relauncher.Side;
+import scala.actors.threadpool.Arrays;
 
 /**
  * TODO 'IP ban' and 'Player Ban' have not tested yet
@@ -120,7 +122,7 @@ public class MoHTTPD extends NanoHTTPD
 		}
 		catch(Exception e)
 		{
-			logger.warn("");
+			logger.warn("Unable to load Player accounts.");
 			throw e;
 		}
 				
@@ -303,6 +305,11 @@ public class MoHTTPD extends NanoHTTPD
 		return response;
 	}
 	
+	private Lang getReqLang(IHTTPSession session, DecodedJWT jwt)
+	{
+		
+	}
+	
 	@Override
     public Response serve(IHTTPSession session) 
 	{
@@ -334,15 +341,14 @@ public class MoHTTPD extends NanoHTTPD
 	        }
 	        
 	        DecodedJWT jwt = (jwtString != null && !jwtString.isEmpty())? this.verify(session, jwtString): null;
+	        Lang lang = this.getReqLang(session, jwt);
 	        if(jwt != null) //authenticated and authorized connections
 	        {
 	        	if(this.authorize(jwt, session))
 	        	{
-	        		UUID player = this.getPlayerIdByJWT(jwt);
-	        		
 		        	if(session.getUri().matches("/{0,1}") || session.getUri().matches("/home/{0,1}"))
 		        	{
-		        		Document home = this.www.getHomePage();
+		        		Document home = this.getPage(Page.HOMEPAGE);
 		        		home.getElementById("greet").appendText(this.getPlayerNameByJWT(jwt));
 		        		response = newFixedLengthResponse(home.outerHtml());
 		        		response.setStatus(Status.OK);
@@ -361,37 +367,7 @@ public class MoHTTPD extends NanoHTTPD
 	        }
 	        else	//unauthenticated connections
 	        {
-	        	if(session.getUri().matches("/{0,1}")) //show entrance for user log-in
-	        	{
-	        		String feedback = "";
-	        		if(session.getParameters().containsKey("fyi"))
-	        		{
-		        		List<String> fyi = session.getParameters().get("fyi");
-		        		if(fyi != null)
-	        			{
-		        			switch(Errno.getErrno(Integer.decode(fyi.get(fyi.size() - 1))))
-		        			{
-		        				case BANNEDPLAYER:
-		        					feedback = "You are BANned";
-		        					break;
-		        				case ERRLOGIN:
-		        					feedback = "Oops! Something is wrong.";
-		        				case NOTHING:
-		        				default:
-		        			}
-	        			}
-	        		}
-	        		
-	        		Set<String> classFeedback = new HashSet<String>();
-	        		classFeedback.add("error");
-	        		
-	        		Document entrance = this.getPage(Page.ENTRANCE);
-	        		entrance.select("#feedback").get(0).appendChild(new Element("div").classNames(classFeedback).appendText(feedback));
-		        	response = newFixedLengthResponse(entrance.outerHtml());
-		        	response.addHeader("WWW-Authenticate", "realm=\"" + Reference.MOD_NAME +"\"");
-		            response.setStatus(Status.UNAUTHORIZED);
-	            }
-	        	else if(session.getUri().matches("/test/{0,1}"))
+	        	if(session.getUri().matches("/test/{0,1}"))
 	        	{
 	        		response = newFixedLengthResponse("Hello");
 	        		response.setStatus(Status.OK);
@@ -418,6 +394,41 @@ public class MoHTTPD extends NanoHTTPD
 	        		}
 	        		if(response == null) response =  this.getDefaultRedirect(Errno.ERRLOGIN);
 	        	}
+	        	else  //show entrance for user log-in
+	        	{
+	        		String feedback = "";
+	        		if(session.getParameters().containsKey("fyi"))
+	        		{
+		        		List<String> fyi = session.getParameters().get("fyi");
+		        		if(fyi != null)
+	        			{
+		        			switch(Errno.getErrno(Integer.decode(fyi.get(fyi.size() - 1))))
+		        			{
+		        				case BANNEDPLAYER:
+		        					feedback = I18n.format(langCode, key, params);
+		        					break;
+		        				case ERRLOGIN:
+		        					feedback = "Oops! Something is wrong.";
+		        				case NOTHING:
+		        				default:
+		        			}
+	        			}
+	        		}
+	        		
+	        		Set<String> classFeedback = new HashSet<String>();
+	        		classFeedback.add("ui");
+	        		classFeedback.add("message");
+	        		classFeedback.add("error");
+	        		
+	        		Document entrance = this.getPage(Page.ENTRANCE);
+	        		Element divError = new Element("div").classNames(classFeedback)
+	        				.appendChild(new Element("div").addClass("header").text(""))
+	        				.appendChild(new Element("p").text(feedback));
+	        		entrance.select("#login").get(0).appendChild();
+		        	response = newFixedLengthResponse(entrance.outerHtml());
+		        	response.addHeader("WWW-Authenticate", "realm=\"" + Reference.MOD_NAME +"\"");
+		            response.setStatus(Status.UNAUTHORIZED);
+	            }
 	        }
 	
 	        if(response == null) response =  this.getDefaultRedirect(Errno.NOTHING);
@@ -774,15 +785,21 @@ public class MoHTTPD extends NanoHTTPD
 	{
 		logger.info("Making secure connection...");
 		
+		InputStream keystoreStream = null;
         try {
             KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-            InputStream keystoreStream = getResourceAsStream(keyAndTrustStoreClasspathPath);
+            keystoreStream = getResourceAsStream(keyAndTrustStoreClasspathPath);
 
             if (keystoreStream == null) {
                 throw new IOException("Unable to load keystore from classpath: " + keyAndTrustStoreClasspathPath);
             }
 
             keystore.load(keystoreStream, passphrase);
+            if(keystoreStream != null)
+        	{
+        		keystoreStream.close();
+        	}
+            
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             keyManagerFactory.init(keystore, passphrase);
             return NanoHTTPD.makeSSLSocketFactory(keystore, keyManagerFactory);
@@ -813,11 +830,17 @@ public class MoHTTPD extends NanoHTTPD
 		{
 			String url = getURL(Page.ENTRANCE);
 			Document doc = new Document(url);
+			InputStream is = null;
 			try {
-				doc = Jsoup.parse(getResourceAsStream(HTML_ENTRANCE), "UTF-8", url);
+				doc = Jsoup.parse(is = getResourceAsStream(HTML_ENTRANCE), "UTF-8", url);
+				if(is != null)
+				{
+					is.close();
+				}
 			} catch (IOException e) {
 				logger.warn("Fail to read the entrance page. ", e);
 			}
+			
 			return doc;
 		}
 		
@@ -825,8 +848,13 @@ public class MoHTTPD extends NanoHTTPD
 		{
 			String url = getURL(Page.HOMEPAGE);
 			Document doc = new Document(url);
+			InputStream is = null;
 			try {
-				doc = Jsoup.parse(getResourceAsStream(HTML_HOME), "UTF-8", url);
+				doc = Jsoup.parse(is = getResourceAsStream(HTML_HOME), "UTF-8", url);
+				if(is != null)
+				{
+					is.close();
+				}
 			} catch (IOException e) {
 				logger.warn("Fail to read the entrance page. ", e);
 			}
@@ -882,6 +910,45 @@ public class MoHTTPD extends NanoHTTPD
 				default:
 					return Errno.NOTHING;
 			}
+		}
+	}
+	
+	public enum Lang
+	{
+		zh_TW("zh_TW", "tw"), en_US("en_US", "en");
+		
+		private static List<Lang> langs = new ArrayList<Lang>();
+		private String lang;
+		private Set<String> keywords = new HashSet<String>();
+		
+		private Lang(String lang, String... keys)
+		{
+			this.lang = lang;
+			this.keywords.addAll(Sets.newHashSet(keys));
+			register(this);
+		}
+		
+		public boolean is(String key)
+		{
+			return this.keywords.contains(key);
+		}
+		
+		private static void register(Lang l)
+		{
+			langs.add(l);
+		}
+		
+		public static Lang getLang(String key)
+		{
+			for(Lang l: langs)
+			{
+				if(l.is(key))
+				{
+					return l;
+				}
+			}
+			
+			return zh_TW;
 		}
 	}
 }

@@ -44,7 +44,7 @@ public abstract class CommonProxy
 		MailPool.init(e);
 		MoHTTPD.init(e);
 		
-		ModConfigs.save(e);
+		ModConfigs.save();
 	}
 
 	public void serverStarting(FMLServerStartingEvent e) throws Exception 

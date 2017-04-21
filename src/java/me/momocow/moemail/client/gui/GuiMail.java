@@ -121,6 +121,9 @@ public class GuiMail extends MoCenteredGuiScreen
     		}
     	}
     	
+    	String pageIndex = "(" + (this.pageCursor + 1) + "/" + this.pageCount + ")";
+    	fontRendererObj.drawString(pageIndex, this.getCenterX() - fontRendererObj.getStringWidth(pageIndex) / 2, this.getGlobalY(153), fontRendererObj.getColorCode('8'));
+    	
     	this.homeButton.drawButton(mc, mouseX, mouseY);
     	this.deleteButton.drawButton(mc, mouseX, mouseY);
     	

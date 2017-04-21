@@ -19,13 +19,14 @@ public class ConfigGeneral implements MoConfig
 	private static Logger logger = MoEMail.logger;
 	
 	private final String CONFIG_FILE = Reference.MOD_ID + "-general.cfg";
-	private final String CATEGORY_GENERAL = "General";
+	public final String CATEGORY_GENERAL = "General";
 	private final String LANG_GENERAL = "config." + Reference.MOD_ID + ".ConfigGeneral.category.general";
-	private final String CATEGORY_HTTPD = "Httpd";
+	public final String CATEGORY_HTTPD = "Httpd";
 	private final String LANG_HTTPD = "config." + Reference.MOD_ID + ".ConfigGeneral.category.httpd";
 	
 	public String mailStorageDir = "data" + File.separator;
 	public int mailNotificationSound = 0;
+	public int maxMsgSize = 500;
 	
 	public static class Httpd
 	{
@@ -49,7 +50,8 @@ public class ConfigGeneral implements MoConfig
 			mailStorageDir = cfg.getString("mailStorageDir", CATEGORY_GENERAL, mailStorageDir, 
 					"A relative path from the Minecraft directory to the logs directory where you allow the mod to place the mail pool storage. The mod will automatically create its own directory under this provided directory.",
 					"config." + Reference.MOD_ID + ".ConfigGeneral.entry.mailStorageDir");
-			mailNotificationSound = cfg.getInt("mailNotificationSound", CATEGORY_GENERAL, mailNotificationSound, -1, 9, "-1: No notification sound; Can be set ingame", "config." + Reference.MOD_ID + ".ConfigGeneral.entry.mailNotificationSound");
+			mailNotificationSound = cfg.getInt("mailNotificationSound", CATEGORY_GENERAL, mailNotificationSound, -1, 9, "-1: No notification sound; Can be set from ingame Gui", "config." + Reference.MOD_ID + ".ConfigGeneral.entry.mailNotificationSound");
+			maxMsgSize = cfg.getInt("maxMsgSize", CATEGORY_GENERAL, maxMsgSize, 0, Integer.MAX_VALUE, "Max message length", "config." + Reference.MOD_ID + ".ConfigGeneral.entry.maxMsgSize");
 			
 			
 			cfg.addCustomCategoryComment(CATEGORY_HTTPD, "MoEMail Http Server Configuration");
